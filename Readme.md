@@ -112,8 +112,8 @@ Following the steps below to clone the repository and install the environment.
 
 ```bash 
 # clone and enter the repositry
-git clone https://github.com/ASLP-lab/DiffRhythm.git
-cd DiffRhythm
+git clone https://github.com/Ocean82/Diffrhythm-linux.git
+cd DiffRhythm-Linux
 
 # install the environment
 
@@ -127,22 +127,33 @@ brew install espeak-ng
 # For Windows
 # Please visit https://github.com/espeak-ng/espeak-ng/releases to download .msi installer
 
-## create python environment
+## create python environment (WSL/Ubuntu)
+python -m venv venv
+source venv/bin/activate
+
+## OR use conda if available
 conda create -n diffrhythm python=3.10
 conda activate diffrhythm
-
-## OR you can use classic Python virtual enviroment instead of conda
-python -m venv venv
-# activate venv on Linux
-source venv/bin/activate
-# activate venv on Windows
-venv\Scripts\activate
 
 ## install requirements
 pip install -r requirements.txt
 ```
 
-On Linux you can now simply use the inference script:
+### WSL (Windows Subsystem for Linux) Setup
+If running on Windows with WSL:
+```bash
+# Install espeak-ng in WSL
+sudo apt-get update
+sudo apt-get install espeak-ng
+
+# Create Python virtual environment in WSL
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Linux/WSL Inference
+On Linux or WSL you can use the inference scripts:
 ```bash
 # For inference using a reference WAV file
 bash scripts/infer_wav_ref.sh
@@ -173,7 +184,30 @@ You can use [the tools](https://huggingface.co/spaces/ASLP-lab/DiffRhythm) we pr
 
 ## Training
 
-Coming soon...
+### Prerequisites
+- Prepared dataset in `dataset/` folder with latent, lrc, and style files
+- Configure training parameters in `config/default.ini` and `config/diffrhythm-1b.json`
+
+### Training on Linux/WSL
+```bash
+# Set up environment
+export PYTHONPATH=$PYTHONPATH:$PWD
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start training
+bash scripts/train.sh
+```
+
+### Training Configuration
+Edit `scripts/train.sh` to adjust:
+- `--batch-size`: Batch size (default: 6)
+- `--max-frames`: Maximum sequence length (default: 2048)
+- `--epochs`: Number of training epochs (default: 1000)
+- `--exp-name`: Experiment name for checkpoints
+
+Checkpoints will be saved in `ckpts/{exp_name}/`
 
 ## License & Disclaimer
 

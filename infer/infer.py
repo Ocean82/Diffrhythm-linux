@@ -167,10 +167,8 @@ if __name__ == "__main__":
         ), "reference song and edit segments should be provided for editing"
 
     device = "cpu"
-    if torch.cuda.is_available():
-        device = "cuda"
-    elif torch.mps.is_available():
-        device = "mps"
+    # Force CPU for compatibility
+    print(f"Using device: {device}")
 
     audio_length = args.audio_length
     if audio_length == 95:
