@@ -23,13 +23,12 @@ from __future__ import annotations
 from typing import Callable
 from random import random
 
-import torch
-from torch import nn
-import torch
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
+import torch  # type: ignore
+from torch import nn  # type: ignore
+import torch.nn.functional as F  # type: ignore
+from torch.nn.utils.rnn import pad_sequence  # type: ignore
 
-from torchdiffeq import odeint
+from torchdiffeq import odeint  # type: ignore
 
 from model.utils import (
     exists,
@@ -40,7 +39,7 @@ from model.utils import (
 )
 
 def custom_mask_from_start_end_indices(
-    seq_len: int["b"],  # noqa: F821
+    seq_len: int,
     latent_pred_segments,
     device,
     max_seq_len
@@ -67,7 +66,7 @@ class CFM(nn.Module):
         odeint_kwargs: dict = dict(
             method="euler"
         ),
-        odeint_options: dict = dict(
+        odeint_options: dict[str, float] = dict(
             min_step=0.05
         ),
         audio_drop_prob=0.3,
@@ -76,7 +75,7 @@ class CFM(nn.Module):
         lrc_drop_prob=0.1,
         num_channels=None,
         frac_lengths_mask: tuple[float, float] = (0.7, 1.0),
-        vocab_char_map: dict[str:int] | None = None,
+        vocab_char_map: dict[str, int] | None = None,
         max_frames=2048
     ):
         super().__init__()

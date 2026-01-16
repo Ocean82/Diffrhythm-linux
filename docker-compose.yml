@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  diffrhythm:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+      - ./infer/example:/app/infer/example
+    environment:
+      - PYTHONPATH=/app
+      - TORCH_HOME=/app/.torch
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "test_core_models.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 8G
+
+  # Optional: Add nginx for production
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - diffrhythm
+    restart: unless-stopped
+    profiles:
+      - production

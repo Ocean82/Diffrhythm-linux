@@ -59,7 +59,7 @@ class Trainer:
         duration_predictor: torch.nn.Module | None = None,
         wandb_project="test_e2-tts",
         wandb_run_name="test_run",
-        wandb_resume_id: str = None,
+        wandb_resume_id: str | None = None,
         last_per_steps=None,
         accelerate_kwargs: dict = dict(),
         ema_kwargs: dict = dict(),

@@ -19,7 +19,7 @@ from importlib.resources import files
 
 from model import CFM, DiT, Trainer
 
-from prefigure.prefigure import get_all_args
+from prefigure.prefigure import get_all_args  # type: ignore
 import json
 import os
 
@@ -32,6 +32,9 @@ def main():
     with open(args.model_config) as f:
         model_config = json.load(f)
 
+    wandb_resume_id: str | None = None
+    model_cls = DiT
+    
     if model_config["model_type"] == "diffrhythm":
         wandb_resume_id = None
         model_cls = DiT
