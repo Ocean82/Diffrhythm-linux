@@ -2,6 +2,7 @@ cd "$(dirname "$0")"
 cd ../
 
 export PYTHONPATH=$PYTHONPATH:$PWD
+export HF_HOME=/mnt/d/_hugging-face
 
 if [[ "$OSTYPE" =~ ^darwin ]]; then
     export PHONEMIZER_ESPEAK_LIBRARY=/opt/homebrew/Cellar/espeak-ng/1.52.0/lib/libespeak-ng.dylib

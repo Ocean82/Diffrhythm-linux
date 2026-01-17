@@ -96,6 +96,8 @@ def get_segment(text: str) -> List[str]:
 
 
 def chn_eng_g2p(text: str):
+    if not text or not text.strip():
+        return "", []
     # now only en and ch
     segments = get_segment(text)
     all_phoneme = ""

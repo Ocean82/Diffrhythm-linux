@@ -1,0 +1,9 @@
+DEBUG: test_vocal_generation.py - Top of File reached
+DEBUG: importing torch...
+DEBUG: torch imported
+================================================================================
+DiffRhythm Vocal Generation Test
+================================================================================
+
+[1/5] Importing modules and loading models...
+DEBUG: importing infer_utils...

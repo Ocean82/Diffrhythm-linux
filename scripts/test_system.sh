@@ -31,6 +31,9 @@ echo "=== Running minimal test (10 seconds) ==="
 echo
 
 export PYTHONPATH=$PYTHONPATH:$PWD
+# Set Hugging Face cache directory to D: drive for local storage
+# On AWS, this can be set to an S3 mount point
+export HF_HOME=/mnt/d/_hugging-face
 
 # Create minimal test lyrics
 cat > infer/example/test_minimal.lrc << 'EOF'

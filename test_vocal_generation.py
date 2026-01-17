@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+print("DEBUG: test_vocal_generation.py - Top of File reached", flush=True)
 """
 Test vocal generation with DiffRhythm - to be copied to DiffRhythm-LINUX directory
 """
 import os
 import sys
+print("DEBUG: importing torch...", flush=True)
 import torch
+print("DEBUG: torch imported", flush=True)
 from pathlib import Path
 import time
 
@@ -13,17 +16,23 @@ sys.path.append(os.getcwd())
 
 def generate_vocal_song():
     """Generate a song with vocals"""
-    print("="*80)
-    print("DiffRhythm Vocal Generation Test")
+    print("="*80, flush=True)
+    print("DiffRhythm Vocal Generation Test", flush=True)
     print("="*80)
     
     try:
         # Import required modules
-        print("\n[1/5] Importing modules and loading models...")
+        print("\n[1/5] Importing modules and loading models...", flush=True)
+        print("DEBUG: importing infer_utils...", flush=True)
         from infer.infer_utils import prepare_model, get_lrc_token, get_style_prompt, get_negative_style_prompt, get_reference_latent
+        print("DEBUG: infer_utils imported", flush=True)
+        print("DEBUG: importing inference...", flush=True)
         from infer.infer import inference
+        print("DEBUG: inference imported", flush=True)
+        print("DEBUG: importing torchaudio...", flush=True)
         import torchaudio
-        print("   ✓ Imports successful")
+        print("DEBUG: torchaudio imported", flush=True)
+        print("   ✓ Imports successful", flush=True)
         
         # Load models using prepare_model
         print("   Loading models (this may take a few minutes)...")
@@ -97,8 +106,18 @@ def generate_vocal_song():
         
         # Save
         print("\n[5/5] Saving output...")
-        output_path = Path("./output/vocal_test_wsl_output.wav")
-        torchaudio.save(str(output_path), generated_songs[0], sample_rate=44100)
+        # Ensure output directory exists
+        output_dir = Path("./output")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "vocal_test_wsl_output.wav"
+        # Verify generated_songs is not empty
+        if not generated_songs:
+            print("✗ Error: No generated audio returned.")
+            return False
+        # Log tensor info for debugging
+        tensor = generated_songs[0]
+        print(f"   Generated audio tensor shape: {tensor.shape}, dtype: {tensor.dtype}")
+        torchaudio.save(str(output_path), tensor, sample_rate=44100)
         
         file_size_mb = output_path.stat().st_size / (1024 * 1024)
         

@@ -26,8 +26,7 @@ Ziqian Ning, Huakang Chen, Yuepeng Jiang, Chunbo Hao, Guobin Ma, Shuai Wang, Jix
   💬 <a href="src/contact.md">WeChat (微信)</a>
 </p>
 
-DiffRhythm (Chinese: 谛韵, Dì Yùn) is the ***first*** open-sourced diffusion-based music generation model that is capable of creating full-length songs. The name combines "Diff" (referencing its diffusion architecture) with "Rhythm" (highlighting its focus on music and song creation). The Chinese name 谛韵 (Dì Yùn) phonetically mirrors "DiffRhythm", where "谛" (attentive listening) symbolizes auditory perception, and "韵" (melodic charm) represents musicality.
-
+DiffRhythm (Chinese: 谛韵, Dì Yùn) is the **_first_** open-sourced diffusion-based music generation model that is capable of creating full-length songs. The name combines "Diff" (referencing its diffusion architecture) with "Rhythm" (highlighting its focus on music and song creation). The Chinese name 谛韵 (Dì Yùn) phonetically mirrors "DiffRhythm", where "谛" (attentive listening) symbolizes auditory perception, and "韵" (melodic charm) represents musicality.
 
 <p align="center">
     <img src="src/diffrhythm.jpg" width="90%"/>
@@ -35,46 +34,48 @@ DiffRhythm (Chinese: 谛韵, Dì Yùn) is the ***first*** open-sourced diffusion
 
 ## News and Updates
 
-* 📌 Join Us on Discord! [![Discord](https://dcbadge.limes.pink/api/server/https://discord.gg/vUD4zgTpJa)](https://discord.gg/vUD4zgTpJa)
+- 📌 Join Us on Discord! [![Discord](https://dcbadge.limes.pink/api/server/https://discord.gg/vUD4zgTpJa)](https://discord.gg/vUD4zgTpJa)
 
-* **2025.5.9 🔥** **DiffRhythm-v1.2 Official Launch!**
+- **2025.5.9 🔥** **DiffRhythm-v1.2 Official Launch!**
 
-   Version 1.2 largely resolves repetition and omission issues, significantly improves audio quality and arrangement with richer instrumentation, and enables song editing and continuation with advanced understanding of music structure and style.
+  Version 1.2 largely resolves repetition and omission issues, significantly improves audio quality and arrangement with richer instrumentation, and enables song editing and continuation with advanced understanding of music structure and style.
 
-* **2025.3.15 🔥** **DiffRhythm-full Official Release: Complete Music Generation!**  
+- **2025.3.15 🔥** **DiffRhythm-full Official Release: Complete Music Generation!**
 
-    The wait is over - **285s full-length music generation** is now live!  
+  The wait is over - **285s full-length music generation** is now live!
 
-    *The symphony evolves. What impossible music will you compose next?*
+  _The symphony evolves. What impossible music will you compose next?_
 
-* **2025.3.11 💻** DiffRhythm can now run on MacOS! 
+- **2025.3.11 💻** DiffRhythm can now run on MacOS!
 
-* **2025.3.9 🔥** **DiffRhythm Update: Text-to-Music and Pure Music Generation!**  
+- **2025.3.9 🔥** **DiffRhythm Update: Text-to-Music and Pure Music Generation!**
 
-    We're excited to announce two groundbreaking features now live in our open-source music model:  
+  We're excited to announce two groundbreaking features now live in our open-source music model:
 
-    🎯 **Text-Based Style Prompts**  
-    Describe styles/scenes in words (e.g., `Jazzy Nightclub Vibe`, `Pop Emotional Piano` or `Indie folk ballad, coming-of-age themes, acoustic guitar picking with harmonica interludes`) — *no audio reference needed!*  
+  🎯 **Text-Based Style Prompts**  
+   Describe styles/scenes in words (e.g., `Jazzy Nightclub Vibe`, `Pop Emotional Piano` or `Indie folk ballad, coming-of-age themes, acoustic guitar picking with harmonica interludes`) — _no audio reference needed!_
 
-    🎧 **Instrumental Mode**  
-    Generate pure music with wild prompts like:  
-    ```bash  
-    "Arctic research station, theremin auroras dancing with geomagnetic storms"  
-    ```
+  🎧 **Instrumental Mode**  
+   Generate pure music with wild prompts like:
 
-    ✨ Special Thanks to community contributor @Jourdelune for implementing these features via #PR29!
+  ```bash
+  "Arctic research station, theremin auroras dancing with geomagnetic storms"
+  ```
 
-    **Full Release Notes**: See [src/update_alert.md](src/update_alert.md) for  details, demos, and roadmap.
+  ✨ Special Thanks to community contributor @Jourdelune for implementing these features via #PR29!
 
-    Break the rules. Make music that shouldn't exist.
+  **Full Release Notes**: See [src/update_alert.md](src/update_alert.md) for details, demos, and roadmap.
 
-* **2025.3.7 🔥** **DiffRhythm** is now officially licensed under the **Apache 2.0 License**! 🎉 As the first diffusion-based music generation model, DiffRhythm opens up exciting new possibilities for AI-driven creativity in music. Whether you're a researcher, developer, or music enthusiast, we invite you to explore, innovate, and build upon this foundation. 
+  Break the rules. Make music that shouldn't exist.
 
-* **2025.3.6 🔥** The local deployment guide is now available.
+- **2025.3.7 🔥** **DiffRhythm** is now officially licensed under the **Apache 2.0 License**! 🎉 As the first diffusion-based music generation model, DiffRhythm opens up exciting new possibilities for AI-driven creativity in music. Whether you're a researcher, developer, or music enthusiast, we invite you to explore, innovate, and build upon this foundation.
 
-* **2025.3.4 🔥** We released the [DiffRhythm paper](https://arxiv.org/abs/2503.01183) and [Huggingface Space demo](https://huggingface.co/spaces/ASLP-lab/DiffRhythm).
+- **2025.3.6 🔥** The local deployment guide is now available.
+
+- **2025.3.4 🔥** We released the [DiffRhythm paper](https://arxiv.org/abs/2503.01183) and [Huggingface Space demo](https://huggingface.co/spaces/ASLP-lab/DiffRhythm).
 
 ## TODOs
+
 - [ ] Support Colab.
 - [ ] Gradio support.
 - [x] Dynamic length control
@@ -89,16 +90,18 @@ DiffRhythm (Chinese: 谛韵, Dì Yùn) is the ***first*** open-sourced diffusion
 
 ## Model Versions
 
-|  Model   | HuggingFace |
-|  ----  | ----  |
-| DiffRhythm-v1.2-base (1m35s)  | https://huggingface.co/ASLP-lab/DiffRhythm-1_2 |
-| DiffRhythm-v1.2-full (4m45s)  | https://huggingface.co/ASLP-lab/DiffRhythm-1_2-full |
-| DiffRhythm-base (1m35s)  | https://huggingface.co/ASLP-lab/DiffRhythm-base |
-| DiffRhythm-full (4m45s)  | https://huggingface.co/ASLP-lab/DiffRhythm-full |
-| DiffRhythm-vae  | https://huggingface.co/ASLP-lab/DiffRhythm-vae |
+| Model                        | HuggingFace                                         |
+| ---------------------------- | --------------------------------------------------- |
+| DiffRhythm-v1.2-base (1m35s) | https://huggingface.co/ASLP-lab/DiffRhythm-1_2      |
+| DiffRhythm-v1.2-full (4m45s) | https://huggingface.co/ASLP-lab/DiffRhythm-1_2-full |
+| DiffRhythm-base (1m35s)      | https://huggingface.co/ASLP-lab/DiffRhythm-base     |
+| DiffRhythm-full (4m45s)      | https://huggingface.co/ASLP-lab/DiffRhythm-full     |
+| DiffRhythm-vae               | https://huggingface.co/ASLP-lab/DiffRhythm-vae      |
 
 ## Docker installation
+
 You just need the 3 files inside the folder docker. Do as it follows:<br/>
+
 - Clone the project or copy the files<br/>
 - cd into the folder<br/>
 - Edit your docker compose biding folders
@@ -106,54 +109,45 @@ You just need the 3 files inside the folder docker. Do as it follows:<br/>
 - docker exec -it DiffRhythm bash<br/>
 
 You will be in the terminal ready for use. Just go to /home/app/scripts and run infer_prompt_ref.sh
+
 ## Inference
 
 Following the steps below to clone the repository and install the environment.
 
-```bash 
+```bash
 # clone and enter the repositry
-git clone https://github.com/Ocean82/Diffrhythm-linux.git
-cd DiffRhythm-Linux
+git clone https://github.com/ASLP-lab/DiffRhythm.git
+cd DiffRhythm
 
 # install the environment
 
 ## espeak-ng
 # For Debian-like distribution (e.g. Ubuntu, Mint, etc.)
 sudo apt-get install espeak-ng
-# For RedHat-like distribution (e.g. CentOS, Fedora, etc.) 
+# For RedHat-like distribution (e.g. CentOS, Fedora, etc.)
 sudo yum install espeak-ng
 # For MacOS
 brew install espeak-ng
 # For Windows
 # Please visit https://github.com/espeak-ng/espeak-ng/releases to download .msi installer
 
-## create python environment (WSL/Ubuntu)
-python -m venv venv
-source venv/bin/activate
-
-## OR use conda if available
+## create python environment
 conda create -n diffrhythm python=3.10
 conda activate diffrhythm
+
+## OR you can use classic Python virtual enviroment instead of conda
+python -m venv venv
+# activate venv on Linux
+source venv/bin/activate
+# activate venv on Windows
+venv\Scripts\activate
 
 ## install requirements
 pip install -r requirements.txt
 ```
 
-### WSL (Windows Subsystem for Linux) Setup
-If running on Windows with WSL:
-```bash
-# Install espeak-ng in WSL
-sudo apt-get update
-sudo apt-get install espeak-ng
+On Linux you can now simply use the inference script:
 
-# Create Python virtual environment in WSL
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Linux/WSL Inference
-On Linux or WSL you can use the inference scripts:
 ```bash
 # For inference using a reference WAV file
 bash scripts/infer_wav_ref.sh
@@ -166,9 +160,10 @@ But before running the inference on Windows, make sure you set the user envirome
 `PHONEMIZER_ESPEAK_PATH` -> `C:\Program Files\eSpeak NG`\
 Change `C:\Program Files\eSpeak NG` to your eSpeak installation directory and reboot your PC to apply changes.
 
-*Installing Japanese voices, mbrola binaries and unpacking an mbrola_ph folder (as described [here](https://github.com/ASLP-lab/DiffRhythm/issues/15) and [here](https://github.com/ASLP-lab/DiffRhythm/issues/22)) are **no longer required** when running on Windows. See https://github.com/ASLP-lab/DiffRhythm/issues/17#issuecomment-2705058729, [this](https://github.com/ASLP-lab/DiffRhythm/commit/2ea9424274df10670ddc613b5d61cc16d13e2b88) and [this commit](https://github.com/ASLP-lab/DiffRhythm/commit/1ad7229e1a774c9a2a0c4888103dd4ea7176aebb).*
+_Installing Japanese voices, mbrola binaries and unpacking an mbrola_ph folder (as described [here](https://github.com/ASLP-lab/DiffRhythm/issues/15) and [here](https://github.com/ASLP-lab/DiffRhythm/issues/22)) are **no longer required** when running on Windows. See https://github.com/ASLP-lab/DiffRhythm/issues/17#issuecomment-2705058729, [this](https://github.com/ASLP-lab/DiffRhythm/commit/2ea9424274df10670ddc613b5d61cc16d13e2b88) and [this commit](https://github.com/ASLP-lab/DiffRhythm/commit/1ad7229e1a774c9a2a0c4888103dd4ea7176aebb)._
 
 After this, you will also be able to run inference scripts on Windows (please note that English lyrics will be used here):
+
 ```batch
 rem : For inference using a reference WAV file
 call scripts\infer_wav_ref.bat
@@ -184,30 +179,7 @@ You can use [the tools](https://huggingface.co/spaces/ASLP-lab/DiffRhythm) we pr
 
 ## Training
 
-### Prerequisites
-- Prepared dataset in `dataset/` folder with latent, lrc, and style files
-- Configure training parameters in `config/default.ini` and `config/diffrhythm-1b.json`
-
-### Training on Linux/WSL
-```bash
-# Set up environment
-export PYTHONPATH=$PYTHONPATH:$PWD
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Start training
-bash scripts/train.sh
-```
-
-### Training Configuration
-Edit `scripts/train.sh` to adjust:
-- `--batch-size`: Batch size (default: 6)
-- `--max-frames`: Maximum sequence length (default: 2048)
-- `--epochs`: Number of training epochs (default: 1000)
-- `--exp-name`: Experiment name for checkpoints
-
-Checkpoints will be saved in `ckpts/{exp_name}/`
+Coming soon...
 
 ## License & Disclaimer
 
@@ -218,6 +190,7 @@ We do not make any profit from this model. Our goal is to provide a high-quality
 DiffRhythm enables the creation of original music across diverse genres, supporting applications in artistic creation, education, and entertainment. While designed for positive use cases, potential risks include unintentional copyright infringement through stylistic similarities, inappropriate blending of cultural musical elements, and misuse for generating harmful content. To ensure responsible deployment, users must implement verification mechanisms to confirm musical originality, disclose AI involvement in generated works, and obtain permissions when adapting protected styles.
 
 ## Citation
+
 ```
 @article{ning2025diffrhythm,
   title={{DiffRhythm}: Blazingly Fast and Embarrassingly Simple End-to-End Full-Length Song Generation with Latent Diffusion},
@@ -226,9 +199,11 @@ DiffRhythm enables the creation of original music across diverse genres, support
   year={2025}
 }
 ```
+
 ## Contact Us
 
 If you are interested in leaving a message to our research team, feel free to email `nzqiann@gmail.com`.
+
 <p align="center">
     <a href="http://www.nwpu-aslp.org/">
         <img src="src/ASLP.jpg" width="400"/>

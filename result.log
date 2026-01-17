@@ -1,0 +1,16 @@
+================================================================================
+DiffRhythm Vocal Generation Test
+================================================================================
+
+[1/5] Importing modules and loading models...
+Current working directory: /mnt/d/EMBERS-BANK/DiffRhythm-LINUX
+   ✓ Imports successful
+   Loading models (this may take a few minutes)...
+/mnt/d/EMBERS-BANK/DiffRhythm-LINUX/.venv/lib/python3.12/site-packages/jieba/_compat.py:18: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+./g2p/sources/g2p_chinese_model/poly_bert_model.onnx
+/mnt/d/EMBERS-BANK/DiffRhythm-LINUX/.venv/lib/python3.12/site-packages/onnxruntime/capi/onnxruntime_inference_collection.py:123: UserWarning: Specified provider 'CUDAExecutionProvider' is not in available provider names.Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
+  warnings.warn(
+/mnt/d/EMBERS-BANK/DiffRhythm-LINUX/.venv/lib/python3.12/site-packages/torch/nn/utils/weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.

@@ -7,8 +7,8 @@ cd "$(dirname "$0")"
 cd ../
 
 export PYTHONPATH=$PYTHONPATH:$PWD
+export HF_HOME=/mnt/d/_hugging-face
 
-# For WSL, set espeak library path if needed
 if [[ "$OSTYPE" =~ ^darwin ]]; then
     export PHONEMIZER_ESPEAK_LIBRARY=/opt/homebrew/Cellar/espeak-ng/1.52.0/lib/libespeak-ng.dylib
 fi
@@ -20,20 +20,12 @@ echo "Estimated time: 20-25 minutes on CPU"
 echo "Memory required: ~16GB RAM"
 echo
 
-# Check memory
+# Check memory (logging only)
 available_mem=$(free -m | awk 'NR==2{print $7}')
 echo "Available memory: ${available_mem}MB"
-if [ "$available_mem" -lt 8000 ]; then
-    echo "⚠️  WARNING: Low memory. Generation may fail."
-    read -p "Continue anyway? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
 echo
 
-python3 infer/infer.py \
+.venv/bin/python3 -u infer/infer.py \
     --lrc-path infer/example/two_minute_song.lrc \
     --ref-prompt "pop ballad, emotional female vocals, piano, strings, uplifting" \
     --audio-length 130 \

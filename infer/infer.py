@@ -25,14 +25,24 @@ from einops import rearrange
 
 print("Current working directory:", os.getcwd())
 
-from infer_utils import (
-    decode_audio,
-    get_lrc_token,
-    get_negative_style_prompt,
-    get_reference_latent,
-    get_style_prompt,
-    prepare_model,
-)
+try:
+    from infer.infer_utils import (
+        decode_audio,
+        get_lrc_token,
+        get_negative_style_prompt,
+        get_reference_latent,
+        get_style_prompt,
+        prepare_model,
+    )
+except (ImportError, ModuleNotFoundError):
+    from infer_utils import (
+        decode_audio,
+        get_lrc_token,
+        get_negative_style_prompt,
+        get_reference_latent,
+        get_style_prompt,
+        prepare_model,
+    )
 
 
 def inference(

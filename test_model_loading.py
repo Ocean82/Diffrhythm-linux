@@ -12,6 +12,19 @@ try:
     import torch
     print(f"   [OK] Torch version: {torch.__version__}")
     print(f"   [OK] CUDA available: {torch.cuda.is_available()}")
+
+    # Determine the default cache directory
+    # Priority: HUGGINGFACE_HUB_CACHE -> HF_HOME -> /mnt/d/_hugging-face (WSL) -> D:\_hugging-face (Windows) -> ./pretrained
+    DEFAULT_CACHE_DIR = os.environ.get("HUGGINGFACE_HUB_CACHE") or os.environ.get("HF_HOME")
+    if not DEFAULT_CACHE_DIR:
+        if os.name == 'nt': # Windows
+            DEFAULT_CACHE_DIR = "D:\\_hugging-face"
+        else: # Linux/WSL
+            if os.path.exists("/mnt/d"):
+                DEFAULT_CACHE_DIR = "/mnt/d/_hugging-face"
+            else:
+                DEFAULT_CACHE_DIR = "./pretrained"
+    print(f"   [OK] Using cache directory: {DEFAULT_CACHE_DIR}")
     
     print("\n2. Testing model imports...")
     from model import DiT, CFM
@@ -37,7 +50,7 @@ try:
     dit_ckpt_path = hf_hub_download(
         repo_id="ASLP-lab/DiffRhythm-1_2", 
         filename="cfm_model.pt", 
-        cache_dir="./pretrained"
+        cache_dir=DEFAULT_CACHE_DIR
     )
     print(f"   [OK] Checkpoint path: {dit_ckpt_path}")
     
@@ -49,7 +62,7 @@ try:
     vae_ckpt_path = hf_hub_download(
         repo_id="ASLP-lab/DiffRhythm-vae",
         filename="vae_model.pt",
-        cache_dir="./pretrained",
+        cache_dir=DEFAULT_CACHE_DIR,
     )
     print(f"   [OK] VAE path: {vae_ckpt_path}")
     vae = torch.jit.load(vae_ckpt_path, map_location="cpu")
@@ -57,7 +70,7 @@ try:
     
     print("\n8. Testing MuQ loading...")
     from muq import MuQMuLan
-    muq = MuQMuLan.from_pretrained("OpenMuQ/MuQ-MuLan-large", cache_dir="./pretrained")
+    muq = MuQMuLan.from_pretrained("OpenMuQ/MuQ-MuLan-large", cache_dir=DEFAULT_CACHE_DIR)
     print(f"   [OK] MuQ loaded successfully")
     
     print("\n[OK] ALL TESTS PASSED!")

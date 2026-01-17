@@ -30,6 +30,20 @@ path.append(os.getcwd())
 
 from model import DiT, CFM
 
+# Determine the default cache directory
+# Priority: HUGGINGFACE_HUB_CACHE -> HF_HOME -> /mnt/d/_hugging-face (WSL) -> D:\_hugging-face (Windows) -> ./pretrained
+DEFAULT_CACHE_DIR = os.environ.get("HUGGINGFACE_HUB_CACHE") or os.environ.get("HF_HOME")
+if not DEFAULT_CACHE_DIR:
+    if os.name == 'nt': # Windows
+        DEFAULT_CACHE_DIR = "D:\\_hugging-face"
+    else: # Linux/WSL
+        if os.path.exists("/mnt/d"):
+            DEFAULT_CACHE_DIR = "/mnt/d/_hugging-face"
+        else:
+            DEFAULT_CACHE_DIR = "./pretrained"
+
+print(f"DEBUG: Using cache directory: {DEFAULT_CACHE_DIR}", flush=True)
+
 def vae_sample(mean, scale):
     stdev = torch.nn.functional.softplus(scale) + 1e-4
     var = stdev * stdev
@@ -212,18 +226,20 @@ def encode_audio(audio, vae_model, chunked=False, overlap=32, chunk_size=128):
 
 def prepare_model(max_frames, device, repo_id="ASLP-lab/DiffRhythm-1_2"):
     # prepare cfm model
+    print(f"DEBUG: Preparing CFM model with max_frames={max_frames}...", flush=True)
     if max_frames == 2048:
         repo_id = "ASLP-lab/DiffRhythm-1_2"
     else:
         repo_id = "ASLP-lab/DiffRhythm-1_2-full"
         
     dit_ckpt_path = hf_hub_download(
-        repo_id=repo_id, filename="cfm_model.pt", cache_dir="./pretrained"
+        repo_id=repo_id, filename="cfm_model.pt", cache_dir=DEFAULT_CACHE_DIR
     )
         
     dit_config_path = "./config/diffrhythm-1b.json"
     with open(dit_config_path) as f:
         model_config = json.load(f)
+    print(f"DEBUG: Initializing DiT model...", flush=True)
     dit_model_cls = DiT
     cfm = CFM(
         transformer=dit_model_cls(**model_config["model"], max_frames=max_frames),
@@ -231,22 +247,27 @@ def prepare_model(max_frames, device, repo_id="ASLP-lab/DiffRhythm-1_2"):
         max_frames=max_frames
     )
     cfm = cfm.to(device)
+    print(f"DEBUG: Loading CFM checkpoint...", flush=True)
     cfm = load_checkpoint(cfm, dit_ckpt_path, device=device, use_ema=False)
 
     # prepare tokenizer
+    print(f"DEBUG: Preparing CNENTokenizer...", flush=True)
     tokenizer = CNENTokenizer()
 
     # prepare muq
-    muq = MuQMuLan.from_pretrained("OpenMuQ/MuQ-MuLan-large", cache_dir="./pretrained")
+    print(f"DEBUG: Preparing MuQMuLan (from_pretrained)...", flush=True)
+    muq = MuQMuLan.from_pretrained("OpenMuQ/MuQ-MuLan-large", cache_dir=DEFAULT_CACHE_DIR)
     muq = muq.to(device).eval()
 
     # prepare vae
+    print(f"DEBUG: Preparing VAE...", flush=True)
     vae_ckpt_path = hf_hub_download(
         repo_id="ASLP-lab/DiffRhythm-vae",
         filename="vae_model.pt",
-        cache_dir="./pretrained",
+        cache_dir=DEFAULT_CACHE_DIR,
     )
     vae = torch.jit.load(vae_ckpt_path, map_location="cpu").to(device)
+    print(f"DEBUG: All models prepared successfully.", flush=True)
 
     return cfm, tokenizer, muq, vae
 
