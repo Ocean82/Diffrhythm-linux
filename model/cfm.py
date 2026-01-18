@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" This implementation is adapted from github repo:
-    https://github.com/SWivid/F5-TTS.
+"""This implementation is adapted from github repo:
+https://github.com/SWivid/F5-TTS.
 """
 
 from __future__ import annotations
@@ -38,37 +38,32 @@ from model.utils import (
     mask_from_frac_lengths,
 )
 
+
 def custom_mask_from_start_end_indices(
-    seq_len: int,
-    latent_pred_segments,
-    device,
-    max_seq_len
+    seq_len: int, latent_pred_segments, device, max_seq_len
 ):
     max_seq_len = max_seq_len
     seq = torch.arange(max_seq_len, device=device).long()
 
     res_mask = torch.zeros(max_seq_len, device=device, dtype=torch.bool)
-    
+
     for start, end in latent_pred_segments:
         start = start.unsqueeze(0)
         end = end.unsqueeze(0)
         start_mask = seq[None, :] >= start[:, None]
         end_mask = seq[None, :] < end[:, None]
         res_mask = res_mask | (start_mask & end_mask)
-    
+
     return res_mask
+
 
 class CFM(nn.Module):
     def __init__(
         self,
         transformer: nn.Module,
         sigma=0.0,
-        odeint_kwargs: dict = dict(
-            method="euler"
-        ),
-        odeint_options: dict[str, float] = dict(
-            min_step=0.05
-        ),
+        odeint_kwargs: dict = dict(method="euler"),
+        odeint_options: dict[str, float] = dict(min_step=0.05),
         audio_drop_prob=0.3,
         cond_drop_prob=0.2,
         style_drop_prob=0.1,
@@ -76,7 +71,7 @@ class CFM(nn.Module):
         num_channels=None,
         frac_lengths_mask: tuple[float, float] = (0.7, 1.0),
         vocab_char_map: dict[str, int] | None = None,
-        max_frames=2048
+        max_frames=2048,
     ):
         super().__init__()
 
@@ -100,12 +95,12 @@ class CFM(nn.Module):
 
         # sampling related
         self.odeint_kwargs = odeint_kwargs
-        
+
         self.odeint_options = odeint_options
 
         # vocab map for tokenization
         self.vocab_char_map = vocab_char_map
-        
+
         self.max_frames = max_frames
 
     @property
@@ -119,9 +114,9 @@ class CFM(nn.Module):
         text: int["b nt"] | list[str],  # noqa: F722
         duration: int | int["b"],  # noqa: F821
         *,
-        style_prompt = None,
-        style_prompt_lens = None,
-        negative_style_prompt = None,
+        style_prompt=None,
+        style_prompt_lens=None,
+        negative_style_prompt=None,
         lens: int["b"] | None = None,  # noqa: F821
         steps=32,
         cfg_strength=4.0,
@@ -136,7 +131,7 @@ class CFM(nn.Module):
         start_time=None,
         latent_pred_segments=None,
         song_duration=None,
-        batch_infer_num=1
+        batch_infer_num=1,
     ):
         self.eval()
 
@@ -170,24 +165,25 @@ class CFM(nn.Module):
             cond_mask = cond_mask & edit_mask
 
         latent_pred_segments = torch.tensor(latent_pred_segments).to(cond.device)
-        fixed_span_mask = custom_mask_from_start_end_indices(cond_seq_len, latent_pred_segments, device=cond.device, max_seq_len=duration)
+        fixed_span_mask = custom_mask_from_start_end_indices(
+            cond_seq_len, latent_pred_segments, device=cond.device, max_seq_len=duration
+        )
         fixed_span_mask = fixed_span_mask.unsqueeze(-1)
         step_cond = torch.where(fixed_span_mask, torch.zeros_like(cond), cond)
 
         if isinstance(duration, int):
-            duration = torch.full((batch_infer_num,), duration, device=device, dtype=torch.long)
+            duration = torch.full(
+                (batch_infer_num,), duration, device=device, dtype=torch.long
+            )
 
         duration = duration.clamp(max=max_duration)
         max_duration = duration.amax()
 
         # duplicate test corner for inner time step oberservation
         if duplicate_test:
-            test_cond = F.pad(cond, (0, 0, cond_seq_len, max_duration - 2 * cond_seq_len), value=0.0)
-
-        if batch > 1:
-            mask = lens_to_mask(duration)
-        else:  # save memory and speed up, as single inference need no mask currently
-            mask = None
+            test_cond = F.pad(
+                cond, (0, 0, cond_seq_len, max_duration - 2 * cond_seq_len), value=0.0
+            )
 
         # test for no ref audio
         if no_ref_audio:
@@ -205,15 +201,31 @@ class CFM(nn.Module):
         def fn(t, x):
             # predict flow
             pred = self.transformer(
-                x=x, cond=step_cond, text=text, time=t, drop_audio_cond=False, drop_text=False, drop_prompt=False,
-                style_prompt=style_prompt, start_time=start_time, duration=song_duration
+                x=x,
+                cond=step_cond,
+                text=text,
+                time=t,
+                drop_audio_cond=False,
+                drop_text=False,
+                drop_prompt=False,
+                style_prompt=style_prompt,
+                start_time=start_time,
+                duration=song_duration,
             )
             if cfg_strength < 1e-5:
                 return pred
 
             null_pred = self.transformer(
-                x=x, cond=step_cond, text=text, time=t, drop_audio_cond=True, drop_text=True, drop_prompt=False,
-                style_prompt=negative_style_prompt, start_time=start_time, duration=song_duration
+                x=x,
+                cond=step_cond,
+                text=text,
+                time=t,
+                drop_audio_cond=True,
+                drop_text=True,
+                drop_prompt=False,
+                style_prompt=negative_style_prompt,
+                start_time=start_time,
+                duration=song_duration,
             )
             return pred + (pred - null_pred) * cfg_strength
 
@@ -224,7 +236,11 @@ class CFM(nn.Module):
         for dur in duration:
             if exists(seed):
                 torch.manual_seed(seed)
-            y0.append(torch.randn(dur, self.num_channels, device=self.device, dtype=step_cond.dtype))
+            y0.append(
+                torch.randn(
+                    dur, self.num_channels, device=self.device, dtype=step_cond.dtype
+                )
+            )
         y0 = pad_sequence(y0, padding_value=0, batch_first=True)
 
         t_start = 0
@@ -234,7 +250,7 @@ class CFM(nn.Module):
             t_start = t_inter
             y0 = (1 - t_start) * y0 + t_start * test_cond
             steps = int(steps * (1 - t_start))
-        
+
         t = torch.linspace(t_start, 1, steps, device=self.device, dtype=step_cond.dtype)
         if sway_sampling_coef is not None:
             t = t + sway_sampling_coef * (torch.cos(torch.pi / 2 * t) - 1 + t)
@@ -256,24 +272,30 @@ class CFM(nn.Module):
         self,
         inp: float["b n d"] | float["b nw"],  # mel or raw wave  # noqa: F722
         text: int["b nt"] | list[str],  # noqa: F722
-        style_prompt = None,
-        style_prompt_lens = None,
+        style_prompt=None,
+        style_prompt_lens=None,
         lens: int["b"] | None = None,  # noqa: F821
         noise_scheduler: str | None = None,
-        grad_ckpt = False,
-        start_time = None,
+        grad_ckpt=False,
+        start_time=None,
     ):
 
-        batch, seq_len, dtype, device, _σ1 = *inp.shape[:2], inp.dtype, self.device, self.sigma
+        batch, seq_len, device = *inp.shape[:2], self.device
 
         # lens and mask
         if not exists(lens):
             lens = torch.full((batch,), seq_len, device=device)
 
-        mask = lens_to_mask(lens, length=seq_len)  # useless here, as collate_fn will pad to max length in batch
+        mask = lens_to_mask(
+            lens, length=seq_len
+        )  # useless here, as collate_fn will pad to max length in batch
 
         # get a random span to mask out for training conditionally
-        frac_lengths = torch.zeros((batch,), device=self.device).float().uniform_(*self.frac_lengths_mask)
+        frac_lengths = (
+            torch.zeros((batch,), device=self.device)
+            .float()
+            .uniform_(*self.frac_lengths_mask)
+        )
         rand_span_mask = mask_from_frac_lengths(lens, frac_lengths, self.max_frames)
 
         if exists(mask):
@@ -306,8 +328,15 @@ class CFM(nn.Module):
         # if want rigourously mask out padding, record in collate_fn in dataset.py, and pass in here
         # adding mask will use more memory, thus also need to adjust batchsampler with scaled down threshold for long sequences
         pred = self.transformer(
-            x=φ, cond=cond, text=text, time=time, drop_audio_cond=drop_audio_cond, drop_text=drop_text, drop_prompt=drop_prompt,
-            style_prompt=style_prompt, start_time=start_time
+            x=φ,
+            cond=cond,
+            text=text,
+            time=time,
+            drop_audio_cond=drop_audio_cond,
+            drop_text=drop_text,
+            drop_prompt=drop_prompt,
+            style_prompt=style_prompt,
+            start_time=start_time,
         )
 
         # flow matching loss
