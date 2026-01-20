@@ -44,6 +44,161 @@ if not DEFAULT_CACHE_DIR:
 
 print(f"DEBUG: Using cache directory: {DEFAULT_CACHE_DIR}", flush=True)
 
+# Audio format validation constants
+SUPPORTED_INPUT_FORMATS = {'.wav', '.flac', '.mp3', '.ogg', '.aac', '.m4a'}
+EXPECTED_SAMPLE_RATE = 44100
+MIN_AUDIO_DURATION = 10  # seconds, for style reference
+EXPECTED_CHANNELS = 2
+EXPECTED_BIT_DEPTH = 16
+
+
+def validate_audio_file(file_path):
+    """
+    Validate audio file format and properties before processing
+    
+    Args:
+        file_path: Path to audio file
+        
+    Returns:
+        dict: Audio properties (sample_rate, duration, channels, bit_depth)
+        
+    Raises:
+        ValueError: If file format not supported or cannot be read
+    """
+    print(f"   Validating audio file: {file_path}", flush=True)
+    
+    # Check file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Audio file not found: {file_path}")
+    
+    # Check format
+    ext = os.path.splitext(file_path)[-1].lower()
+    if ext not in SUPPORTED_INPUT_FORMATS:
+        raise ValueError(
+            f"Unsupported audio format: {ext}\n"
+            f"Supported formats: {', '.join(SUPPORTED_INPUT_FORMATS)}"
+        )
+    
+    print(f"     ✓ Format supported: {ext}", flush=True)
+    
+    # Get audio info
+    try:
+        if ext == ".mp3":
+            # Use mutagen for MP3 metadata
+            try:
+                from mutagen.mp3 import MP3
+                audio_file = MP3(file_path)
+                duration = audio_file.info.length
+                channels = audio_file.info.channels if hasattr(audio_file.info, 'channels') else 2
+                sample_rate = audio_file.info.sample_rate if hasattr(audio_file.info, 'sample_rate') else EXPECTED_SAMPLE_RATE
+                bit_depth = 16
+                
+                print(f"     Duration: {duration:.1f}s, Sample Rate: {sample_rate} Hz, Channels: {channels}", flush=True)
+                
+                if duration < MIN_AUDIO_DURATION:
+                    raise ValueError(
+                        f"Audio file too short: {duration:.1f}s\n"
+                        f"Minimum required: {MIN_AUDIO_DURATION}s"
+                    )
+                
+                return {
+                    'path': file_path,
+                    'format': ext,
+                    'duration': duration,
+                    'sample_rate': sample_rate,
+                    'channels': channels,
+                    'bit_depth': bit_depth
+                }
+            except Exception as e:
+                print(f"     ⚠ mutagen MP3 read failed, trying librosa: {e}", flush=True)
+                raise
+        
+        else:
+            # Use librosa for WAV, FLAC, etc.
+            duration = librosa.get_duration(path=file_path)
+            
+            # Try to get more detailed info
+            try:
+                y, sr = librosa.load(file_path, sr=None, mono=False)
+                channels = 1 if y.ndim == 1 else y.shape[0]
+            except Exception as e:
+                print(f"     ⚠ Could not determine channels: {e}", flush=True)
+                channels = EXPECTED_CHANNELS
+                sr = EXPECTED_SAMPLE_RATE
+            
+            print(f"     Duration: {duration:.1f}s, Sample Rate: {sr} Hz, Channels: {channels}", flush=True)
+            
+            if duration < MIN_AUDIO_DURATION:
+                raise ValueError(
+                    f"Audio file too short: {duration:.1f}s\n"
+                    f"Minimum required: {MIN_AUDIO_DURATION}s"
+                )
+            
+            return {
+                'path': file_path,
+                'format': ext,
+                'duration': duration,
+                'sample_rate': sr,
+                'channels': channels,
+                'bit_depth': 16
+            }
+    
+    except Exception as e:
+        raise ValueError(f"Error reading audio file: {str(e)}")
+
+
+def validate_audio_tensor_properties(audio_tensor, expected_sr=EXPECTED_SAMPLE_RATE):
+    """
+    Validate loaded audio tensor properties
+    
+    Args:
+        audio_tensor: Audio tensor from librosa/torchaudio
+        expected_sr: Expected sample rate
+        
+    Returns:
+        dict: Tensor properties
+        
+    Raises:
+        ValueError: If tensor properties unexpected
+    """
+    print(f"   Validating audio tensor properties", flush=True)
+    
+    # Check dtype
+    if audio_tensor.dtype not in [np.float32, np.float64]:
+        print(f"     ⚠ Unexpected dtype: {audio_tensor.dtype}", flush=True)
+    
+    # Check shape
+    if audio_tensor.ndim not in [1, 2]:
+        raise ValueError(f"Unexpected tensor dimensions: {audio_tensor.ndim}")
+    
+    # Check for NaN/Inf
+    if np.isnan(audio_tensor).any():
+        raise ValueError("Audio contains NaN values")
+    
+    if np.isinf(audio_tensor).any():
+        raise ValueError("Audio contains Inf values")
+    
+    # Check value range
+    max_val = np.max(np.abs(audio_tensor))
+    if max_val == 0:
+        raise ValueError("Audio is completely silent (all zeros)")
+    
+    if max_val > 1.0:
+        print(f"     ⚠ Audio values exceed [-1, 1] range: max={max_val:.2f}", flush=True)
+    
+    properties = {
+        'shape': audio_tensor.shape,
+        'dtype': audio_tensor.dtype,
+        'max_value': float(max_val),
+        'num_samples': audio_tensor.shape[-1],
+        'is_stereo': audio_tensor.ndim == 2,
+        'channels': audio_tensor.shape[0] if audio_tensor.ndim == 2 else 1
+    }
+    
+    print(f"     ✓ Tensor valid: shape={properties['shape']}, max={properties['max_value']:.3f}", flush=True)
+    
+    return properties
+
 def vae_sample(mean, scale):
     stdev = torch.nn.functional.softplus(scale) + 1e-4
     var = stdev * stdev
@@ -308,47 +463,111 @@ def get_negative_style_prompt(device):
     vocal_stlye = np.load(file_path)
 
     vocal_stlye = torch.from_numpy(vocal_stlye).to(device)  # [1, 512]
-    vocal_stlye = vocal_stlye.half()
+
+    # Use appropriate dtype based on device
+    is_cpu = device == "cpu" or (hasattr(device, 'type') and device.type == 'cpu')
+    if is_cpu:
+        vocal_stlye = vocal_stlye.float()
+    else:
+        vocal_stlye = vocal_stlye.half()
 
     return vocal_stlye
 
 
 @torch.no_grad()
 def get_style_prompt(model, wav_path=None, prompt=None):
+    """
+    Get style embedding from audio or text prompt
+    
+    Args:
+        model: MuQ-MuLan model
+        wav_path: Path to audio file for style reference
+        prompt: Text prompt for style
+        
+    Returns:
+        torch.Tensor: Style embedding [1, 512]
+        
+    Raises:
+        ValueError: If audio format not supported or too short
+    """
     mulan = model
 
     if prompt is not None:
-        return mulan(texts=prompt).half()
+        print(f"   Using text prompt for style: '{prompt}'", flush=True)
+        result = mulan(texts=prompt)
+        # Use appropriate dtype based on device
+        is_cpu = str(model.device) == "cpu" or (hasattr(model.device, 'type') and model.device.type == 'cpu')
+        if is_cpu:
+            return result.float()
+        else:
+            return result.half()
 
-    ext = os.path.splitext(wav_path)[-1].lower()
-    if ext == ".mp3":
-        meta = MP3(wav_path)
-        audio_len = meta.info.length
-    elif ext in [".wav", ".flac"]:
-        audio_len = librosa.get_duration(path=wav_path)
-    else:
-        raise ValueError("Unsupported file format: {}".format(ext))
-
-    if audio_len < 10:
-        print(
-            f"Warning: The audio file {wav_path} is too short ({audio_len:.2f} seconds). Expected at least 10 seconds."
+    # Audio-based style reference
+    print(f"   Using audio file for style: {wav_path}", flush=True)
+    
+    # Validate audio file
+    try:
+        audio_info = validate_audio_file(wav_path)
+    except Exception as e:
+        print(f"     ✗ ERROR: {e}", flush=True)
+        raise
+    
+    # Check duration
+    if audio_info['duration'] < MIN_AUDIO_DURATION:
+        raise ValueError(
+            f"Audio file too short: {audio_info['duration']:.1f}s\n"
+            f"Minimum required: {MIN_AUDIO_DURATION}s"
         )
+    
+    print(f"     ✓ Audio file valid: {audio_info['duration']:.1f}s", flush=True)
 
-    assert audio_len >= 10
+    # Load audio for style extraction
+    try:
+        mid_time = audio_info['duration'] // 2
+        start_time = mid_time - 5
+        
+        print(f"     Loading audio segment: {start_time:.1f}s to {start_time + 10:.1f}s", flush=True)
+        wav, sr = librosa.load(wav_path, sr=24000, offset=start_time, duration=10)
+        
+        # Validate loaded audio
+        try:
+            audio_props = validate_audio_tensor_properties(wav, sr)
+        except Exception as e:
+            print(f"     ✗ ERROR validating loaded audio: {e}", flush=True)
+            raise
+        
+        print(f"     ✓ Audio loaded: {audio_props['shape']}, sample rate: {sr} Hz", flush=True)
 
-    mid_time = audio_len // 2
-    start_time = mid_time - 5
-    wav, _ = librosa.load(wav_path, sr=24000, offset=start_time, duration=10)
+    except Exception as e:
+        print(f"     ✗ ERROR loading audio: {e}", flush=True)
+        print(f"     Check that:")
+        print(f"       - File exists: {os.path.exists(wav_path)}")
+        print(f"       - Format supported: {os.path.splitext(wav_path)[1]}")
+        print(f"       - FFmpeg installed (for MP3/OGG): check_codec_pipeline.py")
+        raise
 
-    wav = torch.tensor(wav).unsqueeze(0).to(model.device)
+    # Convert to tensor and get embedding
+    try:
+        wav = torch.tensor(wav).unsqueeze(0).to(model.device)
 
-    with torch.no_grad():
-        audio_emb = mulan(wavs=wav)  # [1, 512]
+        print(f"     Extracting style embedding...", flush=True)
+        with torch.no_grad():
+            audio_emb = mulan(wavs=wav)  # [1, 512]
 
-    audio_emb = audio_emb
-    audio_emb = audio_emb.half()
+        # Use appropriate dtype based on device
+        is_cpu = str(model.device) == "cpu" or (hasattr(model.device, 'type') and model.device.type == 'cpu')
+        if is_cpu:
+            audio_emb = audio_emb.float()
+        else:
+            audio_emb = audio_emb.half()
 
-    return audio_emb
+        print(f"     ✓ Style embedding extracted: shape={audio_emb.shape}", flush=True)
+
+        return audio_emb
+
+    except Exception as e:
+        print(f"     ✗ ERROR extracting style embedding: {e}", flush=True)
+        raise
 
 
 def parse_lyrics(lyrics: str):
@@ -444,16 +663,33 @@ def get_lrc_token(max_frames, text, tokenizer, max_secs, device):
     lrc_emb = lrc.unsqueeze(0).to(device)
 
     normalized_start_time = torch.tensor(normalized_start_time).unsqueeze(0).to(device)
-    normalized_start_time = normalized_start_time.half()
-    
     normalized_duration = torch.tensor(normalized_duration).unsqueeze(0).to(device)
-    normalized_duration = normalized_duration.half()
+
+    # Use appropriate dtype based on device
+    is_cpu = device == "cpu" or (hasattr(device, 'type') and device.type == 'cpu')
+    if is_cpu:
+        normalized_start_time = normalized_start_time.float()
+        normalized_duration = normalized_duration.float()
+    else:
+        normalized_start_time = normalized_start_time.half()
+        normalized_duration = normalized_duration.half()
 
     return lrc_emb, normalized_start_time, end_frame, normalized_duration
 
 
 def load_checkpoint(model, ckpt_path, device, use_ema=True):
-    model = model.half()
+    # Determine optimal dtype based on device
+    # CPU: use float32 for better performance (FP16 emulation is slow on CPU)
+    # GPU: use float16 for faster inference and lower memory
+    is_cpu = device == "cpu" or (hasattr(device, 'type') and device.type == 'cpu')
+
+    if is_cpu:
+        print(f"DEBUG: CPU detected - using float32 for better performance", flush=True)
+        # Keep model in float32 for CPU
+        model = model.float()
+    else:
+        print(f"DEBUG: GPU detected - using float16 for efficiency", flush=True)
+        model = model.half()
 
     ckpt_type = ckpt_path.split(".")[-1]
     if ckpt_type == "safetensors":

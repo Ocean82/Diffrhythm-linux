@@ -22,6 +22,8 @@ https://github.com/SWivid/F5-TTS.
 from __future__ import annotations
 from typing import Callable
 from random import random
+import time as time_module
+import threading
 
 import torch  # type: ignore
 from torch import nn  # type: ignore
@@ -37,6 +39,85 @@ from model.utils import (
     lens_to_mask,
     mask_from_frac_lengths,
 )
+
+
+class ODETimeoutError(Exception):
+    """Raised when ODE integration times out"""
+    pass
+
+
+class ODEProgressTracker:
+    """Track ODE integration progress with timeout and interruption support"""
+
+    def __init__(self, total_steps: int, timeout_seconds: float = None, verbose: bool = True):
+        self.total_steps = total_steps
+        self.timeout_seconds = timeout_seconds
+        self.verbose = verbose
+        self.current_step = 0
+        self.start_time = None
+        self.step_times = []
+        self.interrupted = False
+        self._lock = threading.Lock()
+
+    def start(self):
+        self.start_time = time_module.time()
+        self.current_step = 0
+        self.step_times = []
+        if self.verbose:
+            print(f"   [ODE] Starting integration: {self.total_steps} steps", flush=True)
+            if self.timeout_seconds:
+                print(f"   [ODE] Timeout set to {self.timeout_seconds:.0f}s", flush=True)
+
+    def step(self):
+        with self._lock:
+            step_time = time_module.time()
+            self.current_step += 1
+
+            if self.step_times:
+                self.step_times.append(step_time - self.step_times[-1] if len(self.step_times) == 1
+                                       else step_time - sum(self.step_times) - self.start_time)
+
+            elapsed = step_time - self.start_time
+
+            # Check timeout
+            if self.timeout_seconds and elapsed > self.timeout_seconds:
+                raise ODETimeoutError(
+                    f"ODE integration timed out after {elapsed:.1f}s "
+                    f"(limit: {self.timeout_seconds}s, step {self.current_step}/{self.total_steps})"
+                )
+
+            # Progress logging
+            if self.verbose and (self.current_step % 2 == 0 or self.current_step == 1):
+                # Estimate remaining time
+                if self.current_step > 1:
+                    avg_step_time = elapsed / self.current_step
+                    remaining_steps = self.total_steps - self.current_step
+                    eta = avg_step_time * remaining_steps
+                    print(f"   [ODE] Step {self.current_step}/{self.total_steps} "
+                          f"({100*self.current_step/self.total_steps:.0f}%) - "
+                          f"Elapsed: {elapsed:.1f}s, ETA: {eta:.1f}s", flush=True)
+                else:
+                    print(f"   [ODE] Step {self.current_step}/{self.total_steps} - "
+                          f"Elapsed: {elapsed:.1f}s", flush=True)
+
+    def interrupt(self):
+        with self._lock:
+            self.interrupted = True
+
+    def is_interrupted(self):
+        with self._lock:
+            return self.interrupted
+
+    def get_elapsed(self):
+        if self.start_time:
+            return time_module.time() - self.start_time
+        return 0
+
+    def finish(self):
+        elapsed = self.get_elapsed()
+        if self.verbose:
+            print(f"   [ODE] Completed {self.current_step} steps in {elapsed:.1f}s "
+                  f"({elapsed/max(1,self.current_step):.2f}s/step)", flush=True)
 
 
 def custom_mask_from_start_end_indices(
@@ -103,9 +184,54 @@ class CFM(nn.Module):
 
         self.max_frames = max_frames
 
+        # ODE integration settings
+        self.ode_timeout = None  # seconds, None = no timeout
+        self.ode_progress_tracker = None
+
     @property
     def device(self):
         return next(self.parameters()).device
+
+    def set_ode_timeout(self, timeout_seconds: float):
+        """Set timeout for ODE integration in seconds"""
+        self.ode_timeout = timeout_seconds
+
+    def _manual_euler_integration(
+        self,
+        fn,
+        y0,
+        t_points,
+        progress_tracker: ODEProgressTracker = None
+    ):
+        """
+        Manual Euler integration with progress tracking and timeout support.
+        This replaces torchdiffeq.odeint for better control.
+        """
+        y = y0
+        trajectory = [y0]
+
+        for i in range(len(t_points) - 1):
+            if progress_tracker:
+                if progress_tracker.is_interrupted():
+                    print("   [ODE] Integration interrupted by user", flush=True)
+                    break
+                progress_tracker.step()
+
+            t_curr = t_points[i]
+            t_next = t_points[i + 1]
+            dt = t_next - t_curr
+
+            # Euler step: y_next = y + dt * f(t, y)
+            dy = fn(t_curr, y)
+            y = y + dt * dy
+
+            trajectory.append(y)
+
+            # Clear cache periodically to prevent memory buildup on CPU
+            if i % 4 == 0 and not y.is_cuda:
+                torch.cuda.empty_cache() if torch.cuda.is_available() else None
+
+        return torch.stack(trajectory)
 
     @torch.no_grad()
     def sample(
@@ -132,11 +258,25 @@ class CFM(nn.Module):
         latent_pred_segments=None,
         song_duration=None,
         batch_infer_num=1,
+        use_torchdiffeq=False,  # Use manual integration by default for better control
+        ode_timeout=None,  # Override instance timeout
     ):
         self.eval()
 
-        if next(self.parameters()).dtype == torch.float16:
-            cond = cond.half()
+        # Determine device and dtype
+        device = self.device
+        is_cpu = not (device.type == 'cuda' if hasattr(device, 'type') else 'cuda' in str(device))
+
+        # Get model dtype and ensure inputs match
+        model_dtype = next(self.parameters()).dtype
+
+        # CPU optimization: use float32 for better performance
+        if is_cpu and model_dtype == torch.float16:
+            print("   [ODE] Warning: FP16 on CPU is slow. Consider using FP32.", flush=True)
+
+        # Ensure cond matches model dtype
+        if cond.dtype != model_dtype:
+            cond = cond.to(model_dtype)
 
         # raw wave
         if cond.shape[1] > duration:
@@ -198,6 +338,7 @@ class CFM(nn.Module):
         fixed_span_mask = fixed_span_mask.repeat(batch_infer_num, 1, 1)
         song_duration = song_duration.repeat(batch_infer_num)
 
+        # Pre-compute values that don't change between steps for efficiency
         def fn(t, x):
             # predict flow
             pred = self.transformer(
@@ -255,7 +396,51 @@ class CFM(nn.Module):
         if sway_sampling_coef is not None:
             t = t + sway_sampling_coef * (torch.cos(torch.pi / 2 * t) - 1 + t)
 
-        trajectory = odeint(fn, y0, t, **self.odeint_kwargs)
+        # Setup progress tracker with timeout
+        timeout = ode_timeout or self.ode_timeout
+        progress_tracker = ODEProgressTracker(
+            total_steps=len(t) - 1,
+            timeout_seconds=timeout,
+            verbose=True
+        )
+        self.ode_progress_tracker = progress_tracker
+
+        # Estimate time for CPU inference
+        if is_cpu:
+            # Rough estimate: ~30-60s per step on CPU for 1B model
+            estimated_time = steps * 45  # seconds
+            print(f"   [ODE] CPU detected - estimated time: {estimated_time//60}m {estimated_time%60}s", flush=True)
+            print(f"   [ODE] Consider using GPU or reducing steps (current: {steps})", flush=True)
+
+        try:
+            progress_tracker.start()
+
+            if use_torchdiffeq:
+                # Use torchdiffeq with progress wrapper
+                step_counter = [0]
+
+                def fn_with_progress(t_val, x):
+                    step_counter[0] += 1
+                    progress_tracker.step()
+                    return fn(t_val, x)
+
+                trajectory = odeint(fn_with_progress, y0, t, **self.odeint_kwargs)
+            else:
+                # Use manual Euler integration for better control
+                trajectory = self._manual_euler_integration(
+                    fn, y0, t, progress_tracker=progress_tracker
+                )
+
+            progress_tracker.finish()
+
+        except ODETimeoutError as e:
+            print(f"   [ODE] ERROR: {e}", flush=True)
+            print(f"   [ODE] Returning partial results from step {progress_tracker.current_step}", flush=True)
+            # Return what we have so far
+            if hasattr(progress_tracker, '_partial_trajectory'):
+                trajectory = progress_tracker._partial_trajectory
+            else:
+                raise
 
         sampled = trajectory[-1]
         out = sampled

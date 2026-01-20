@@ -1,0 +1,18 @@
+chrome_path: '"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Google Chrome.lnk"'
+idle_browser_timeout: ''
+headless: 'true'
+window_width: ''
+window_height: ''
+scale_factor: ''
+mobile_window_width: ''
+mobile_window_height: ''
+mobile_scale_factor: ''
+tablet_window_width: ''
+tablet_window_height: ''
+tablet_scale_factor: ''
+available:
+  on_your_laptop: true
+  when_isolated: false
+confirmation:
+  ask_user: []
+  deny: []

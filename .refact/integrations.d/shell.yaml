@@ -1,0 +1,15 @@
+timeout: '10'
+output_filter:
+  limit_lines: 50
+  limit_chars: 8000
+  valuable_top_or_bottom: top
+  grep: (?i)(error|failed|exception|warning|fatal|panic|traceback)
+  grep_context_lines: 3
+  remove_from_output: ''
+  limit_tokens: 8000
+available:
+  on_your_laptop: false
+  when_isolated: false
+confirmation:
+  ask_user: []
+  deny: []
