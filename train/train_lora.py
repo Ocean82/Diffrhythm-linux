@@ -109,9 +109,10 @@ def load_base_model(model_config_path, checkpoint_path, max_frames=2048, device=
     # Load checkpoint
     if checkpoint_path:
         if checkpoint_path.startswith("ASLP-lab/"):
-            # Download from HuggingFace
+            # Download from HuggingFace (use configured cache directory)
             repo_id = checkpoint_path
-            ckpt_path = hf_hub_download(repo_id=repo_id, filename="cfm_model.pt")
+            cache_dir = "D:\\_hugging-face"
+            ckpt_path = hf_hub_download(repo_id=repo_id, filename="cfm_model.pt", cache_dir=cache_dir)
         else:
             ckpt_path = checkpoint_path
 
@@ -326,10 +327,10 @@ def main():
         print("\n" + "="*60)
         print("VERIFICATION COMPLETE")
         print("="*60)
-        print("✓ Model loaded successfully")
-        print("✓ LoRA adapters applied")
-        print("✓ Dataset loaded")
-        print(f"✓ Ready to train with {len(dataset)} samples")
+        print("OK Model loaded successfully")
+        print("OK LoRA adapters applied")
+        print("OK Dataset loaded")
+        print(f"OK Ready to train with {len(dataset)} samples")
         print("\nTo start training, run without --verify-only")
         print(f"Estimated GPU memory needed: ~12-16 GB")
         print(f"Estimated training time: {args.epochs * len(dataset) * 2 // 60} minutes on GPU")

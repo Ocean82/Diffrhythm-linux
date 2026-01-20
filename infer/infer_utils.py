@@ -379,7 +379,7 @@ def encode_audio(audio, vae_model, chunked=False, overlap=32, chunk_size=128):
             y_final[:,:,t_start:t_end] = y_chunk[:,:,chunk_start:chunk_end]
         return y_final
 
-def prepare_model(max_frames, device, repo_id="ASLP-lab/DiffRhythm-1_2"):
+def prepare_model(max_frames, device, repo_id="ASLP-lab/DiffRhythm-1_2", lora_adapter_path=None):
     # prepare cfm model
     print(f"DEBUG: Preparing CFM model with max_frames={max_frames}...", flush=True)
     if max_frames == 2048:
@@ -404,6 +404,21 @@ def prepare_model(max_frames, device, repo_id="ASLP-lab/DiffRhythm-1_2"):
     cfm = cfm.to(device)
     print(f"DEBUG: Loading CFM checkpoint...", flush=True)
     cfm = load_checkpoint(cfm, dit_ckpt_path, device=device, use_ema=False)
+    
+    # Load LoRA adapter if specified
+    if lora_adapter_path:
+        print(f"DEBUG: Loading LoRA adapter from {lora_adapter_path}...", flush=True)
+        try:
+            from peft import PeftModel
+            cfm.transformer = PeftModel.from_pretrained(
+                cfm.transformer,
+                lora_adapter_path
+            )
+            print(f"DEBUG: LoRA adapter loaded successfully")
+        except ImportError:
+            print(f"WARNING: PEFT library not installed. Install with: pip install peft")
+        except Exception as e:
+            print(f"WARNING: Failed to load LoRA adapter: {e}")
 
     # prepare tokenizer
     print(f"DEBUG: Preparing CNENTokenizer...", flush=True)

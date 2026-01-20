@@ -79,16 +79,16 @@ def safe_normalize_audio(output, target_amplitude=0.95, min_threshold=1e-8):
 
     # Check if audio is essentially silent
     if max_val < min_threshold:
-        print(f"   ⚠ WARNING: Audio is silent (max={max_val:.2e}), returning zeros")
+        print(f"   WARN WARNING: Audio is silent (max={max_val:.2e}), returning zeros")
         return torch.zeros_like(output, dtype=torch.int16)
 
     # Check for NaN or Inf
     if torch.isnan(output).any():
-        print("   ✗ ERROR: Audio contains NaN values!")
+        print("   ERROR ERROR: Audio contains NaN values!")
         return torch.zeros_like(output, dtype=torch.int16)
 
     if torch.isinf(output).any():
-        print("   ✗ ERROR: Audio contains Inf values!")
+        print("   ERROR ERROR: Audio contains Inf values!")
         return torch.zeros_like(output, dtype=torch.int16)
 
     # Normalize to target amplitude
@@ -98,7 +98,7 @@ def safe_normalize_audio(output, target_amplitude=0.95, min_threshold=1e-8):
     normalized = normalized.clamp(-1, 1).mul(32767).to(torch.int16)
 
     print(
-        f"   ✓ Audio normalized successfully: range {normalized.min()} to {normalized.max()}"
+        f"   OK Audio normalized successfully: range {normalized.min()} to {normalized.max()}"
     )
 
     return normalized
@@ -133,7 +133,7 @@ def validate_audio_tensor(audio):
     if audio.numel() == 0:
         raise ValueError("Empty audio tensor")
     
-    print(f"     ✓ Audio tensor is valid")
+    print(f"     OK Audio tensor is valid")
     return True
 
 
@@ -156,7 +156,7 @@ def save_audio_robust(audio, output_path, sample_rate=44100, timeout=60):
     try:
         validate_audio_tensor(audio)
     except ValueError as e:
-        print(f"   ✗ Audio validation failed: {e}")
+        print(f"   ERROR Audio validation failed: {e}")
         raise
     
     # Ensure output directory exists
@@ -177,14 +177,14 @@ def save_audio_robust(audio, output_path, sample_rate=44100, timeout=60):
             # Verify file was created
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path)
-                print(f"     ✓ Saved with torchaudio ({file_size:,} bytes)")
+                print(f"     OK Saved with torchaudio ({file_size:,} bytes)")
                 return True
         except TimeoutException:
             clear_timeout()
-            print(f"     ⚠ torchaudio save timed out after {timeout}s")
+            print(f"     WARN torchaudio save timed out after {timeout}s")
     except Exception as e:
         clear_timeout()
-        print(f"     ⚠ torchaudio failed: {e}")
+        print(f"     WARN torchaudio failed: {e}")
     
     # Method 2: Try scipy
     print(f"   Method 2: Attempting save with scipy.io.wavfile...")
@@ -211,17 +211,17 @@ def save_audio_robust(audio, output_path, sample_rate=44100, timeout=60):
 
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path)
-                print(f"     ✓ Saved with scipy.io.wavfile ({file_size:,} bytes)")
+                print(f"     OK Saved with scipy.io.wavfile ({file_size:,} bytes)")
                 return True
         except TimeoutException:
             clear_timeout()
-            print(f"     ⚠ scipy save timed out after {timeout}s")
+            print(f"     WARN scipy save timed out after {timeout}s")
     except ImportError:
         clear_timeout()
-        print(f"     ⚠ scipy not available")
+        print(f"     WARN scipy not available")
     except Exception as e:
         clear_timeout()
-        print(f"     ⚠ scipy failed: {e}")
+        print(f"     WARN scipy failed: {e}")
     
     # Method 3: Try soundfile
     print(f"   Method 3: Attempting save with soundfile...")
@@ -246,17 +246,17 @@ def save_audio_robust(audio, output_path, sample_rate=44100, timeout=60):
 
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path)
-                print(f"     ✓ Saved with soundfile ({file_size:,} bytes)")
+                print(f"     OK Saved with soundfile ({file_size:,} bytes)")
                 return True
         except TimeoutException:
             clear_timeout()
-            print(f"     ⚠ soundfile save timed out after {timeout}s")
+            print(f"     WARN soundfile save timed out after {timeout}s")
     except ImportError:
         clear_timeout()
-        print(f"     ⚠ soundfile not available")
+        print(f"     WARN soundfile not available")
     except Exception as e:
         clear_timeout()
-        print(f"     ⚠ soundfile failed: {e}")
+        print(f"     WARN soundfile failed: {e}")
 
     # All methods failed
     clear_timeout()
@@ -287,17 +287,17 @@ def validate_latents(latents, step_name=""):
         has_inf = torch.isinf(latent).any()
 
         if has_nan:
-            print(f"     ✗ ERROR: Latent {i} contains NaN values!")
+            print(f"     ERROR ERROR: Latent {i} contains NaN values!")
             return False
 
         if has_inf:
-            print(f"     ✗ ERROR: Latent {i} contains Inf values!")
+            print(f"     ERROR ERROR: Latent {i} contains Inf values!")
             return False
 
         # Check if all zeros
         is_all_zeros = (latent.abs() < 1e-8).all()
         if is_all_zeros:
-            print(f"     ✗ ERROR: Latent {i} is all zeros!")
+            print(f"     ERROR ERROR: Latent {i} is all zeros!")
             return False
 
         # Check statistics
@@ -313,10 +313,10 @@ def validate_latents(latents, step_name=""):
         # Check for reasonable variance
         if std_val < 1e-6:
             print(
-                f"     ⚠ WARNING: Latent {i} has very low variance (std={std_val:.2e})"
+                f"     WARN WARNING: Latent {i} has very low variance (std={std_val:.2e})"
             )
 
-        print(f"     ✓ Latent {i} validation passed")
+        print(f"     OK Latent {i} validation passed")
 
     return True
 
@@ -357,10 +357,10 @@ def inference(
                 latent_pred_segments=pred_frames,
                 batch_infer_num=batch_infer_num,
             )
-            print(f"   ✓ CFM sampling completed, got {len(latents)} latent(s)")
+            print(f"   OK CFM sampling completed, got {len(latents)} latent(s)")
 
         except Exception as e:
-            print(f"   ✗ ERROR during CFM sampling: {e}")
+            print(f"   ERROR ERROR during CFM sampling: {e}")
             raise
 
         # Validate latents
@@ -379,19 +379,19 @@ def inference(
             # VAE decoding with validation
             try:
                 output = decode_audio(latent, vae_model, chunked=chunked)
-                print(f"     ✓ VAE decode successful: shape={output.shape}")
+                print(f"     OK VAE decode successful: shape={output.shape}")
 
             except Exception as e:
-                print(f"     ✗ ERROR during VAE decode: {e}")
+                print(f"     ERROR ERROR during VAE decode: {e}")
                 raise
 
             # Validate audio output
             if torch.isnan(output).any():
-                print("     ✗ ERROR: VAE output contains NaN!")
+                print("     ERROR ERROR: VAE output contains NaN!")
                 raise ValueError("VAE decode produced NaN values")
 
             if torch.isinf(output).any():
-                print("     ✗ ERROR: VAE output contains Inf!")
+                print("     ERROR ERROR: VAE output contains Inf!")
                 raise ValueError("VAE decode produced Inf values")
 
             # Rearrange audio batch to a single sequence
@@ -402,9 +402,9 @@ def inference(
             output = safe_normalize_audio(output.to(torch.float32))
 
             outputs.append(output.cpu())
-            print(f"     ✓ Latent {i+1} processed successfully")
+            print(f"     OK Latent {i+1} processed successfully")
 
-        print(f"   ✓ All {len(outputs)} outputs processed successfully")
+        print(f"   OK All {len(outputs)} outputs processed successfully")
         return outputs
 
 
@@ -510,6 +510,12 @@ if __name__ == "__main__":
         choices=["subtle", "balanced", "loud", "broadcast"],
         help="Mastering preset (used with --auto-master)",
     )
+    parser.add_argument(
+        "--lora-path",
+        type=str,
+        default=None,
+        help="Path to LoRA adapter directory for fine-tuning (requires PEFT library)",
+    )
     args = parser.parse_args()
 
     # Validation
@@ -532,7 +538,7 @@ if __name__ == "__main__":
             from quality_presets import get_preset
 
         preset = get_preset(args.preset)
-        print(f"\n✓ Using quality preset: {args.preset}")
+        print(f"\nOK Using quality preset: {args.preset}")
         print(f"  - Steps: {preset.steps}")
         print(f"  - CFG Strength: {preset.cfg_strength}")
         print(f"  - {preset.description}")
@@ -546,13 +552,13 @@ if __name__ == "__main__":
     # Device detection
     if torch.cuda.is_available():
         device = "cuda"
-        print(f"✓ Using GPU: {torch.cuda.get_device_name(0)}")
+        print(f"OK Using GPU: {torch.cuda.get_device_name(0)}")
         default_steps = 32
         default_cfg = 4.0
         ode_timeout = args.timeout  # Use user-specified or None
     else:
         device = "cpu"
-        print(f"⚠ Using CPU - inference will be slow!")
+        print(f"WARN Using CPU - inference will be slow!")
 
         # CPU optimization: significantly reduce steps for faster inference
         default_steps = 8  # Reduced from 32 - still produces reasonable quality
@@ -599,56 +605,56 @@ if __name__ == "__main__":
     # Model preparation
     print("Loading models...")
     try:
-        cfm, tokenizer, muq, vae = prepare_model(max_frames, device)
-        print("✓ All models loaded successfully")
+        cfm, tokenizer, muq, vae = prepare_model(max_frames, device, lora_adapter_path=args.lora_path)
+        print("OK All models loaded successfully")
     except Exception as e:
-        print(f"✗ ERROR loading models: {e}")
+        print(f"ERROR ERROR loading models: {e}")
         raise
 
     # Lyrics processing
     if args.lrc_path:
         with open(args.lrc_path, "r", encoding="utf-8") as f:
             lrc = f.read()
-        print(f"✓ Lyrics loaded from {args.lrc_path}")
+        print(f"OK Lyrics loaded from {args.lrc_path}")
     else:
         lrc = ""
-        print("⚠ No lyrics provided")
+        print("WARN No lyrics provided")
 
     try:
         lrc_prompt, start_time, end_frame, song_duration = get_lrc_token(
             max_frames, lrc, tokenizer, audio_length, device
         )
-        print(f"✓ Lyrics processed: end_frame={end_frame}")
+        print(f"OK Lyrics processed: end_frame={end_frame}")
     except Exception as e:
-        print(f"✗ ERROR processing lyrics: {e}")
+        print(f"ERROR ERROR processing lyrics: {e}")
         raise
 
     # Style processing
     try:
         if args.ref_audio_path:
             style_prompt = get_style_prompt(muq, args.ref_audio_path)
-            print(f"✓ Style from audio: {args.ref_audio_path}")
+            print(f"OK Style from audio: {args.ref_audio_path}")
         else:
             style_prompt = get_style_prompt(muq, prompt=args.ref_prompt)
-            print(f"✓ Style from prompt: {args.ref_prompt}")
+            print(f"OK Style from prompt: {args.ref_prompt}")
     except Exception as e:
-        print(f"✗ ERROR processing style: {e}")
+        print(f"ERROR ERROR processing style: {e}")
         raise
 
     try:
         negative_style_prompt = get_negative_style_prompt(device)
-        print("✓ Negative style prompt loaded")
+        print("OK Negative style prompt loaded")
     except Exception as e:
-        print(f"✗ ERROR loading negative style: {e}")
+        print(f"ERROR ERROR loading negative style: {e}")
         raise
 
     try:
         latent_prompt, pred_frames = get_reference_latent(
             device, max_frames, args.edit, args.edit_segments, args.ref_song, vae
         )
-        print("✓ Reference latent prepared")
+        print("OK Reference latent prepared")
     except Exception as e:
-        print(f"✗ ERROR preparing reference latent: {e}")
+        print(f"ERROR ERROR preparing reference latent: {e}")
         raise
 
     # Generation
@@ -657,11 +663,11 @@ if __name__ == "__main__":
     print("=" * 60)
 
     if device == "cpu":
-        print("⚠ Running on CPU - this will take significant time")
-        print("⚠ Progress will be shown for each ODE step")
-        print("⚠ You can Ctrl+C to interrupt if needed")
+        print("WARN Running on CPU - this will take significant time")
+        print("WARN Progress will be shown for each ODE step")
+        print("WARN You can Ctrl+C to interrupt if needed")
     else:
-        print("✓ Running on GPU - should complete in 1-3 minutes")
+        print("OK Running on GPU - should complete in 1-3 minutes")
 
     # Set ODE timeout for CPU
     if device == "cpu":
@@ -687,10 +693,10 @@ if __name__ == "__main__":
         )
 
         e_t = time.time() - s_t
-        print(f"✓ Generation completed in {e_t:.2f} seconds ({e_t/60:.1f} minutes)")
+        print(f"OK Generation completed in {e_t:.2f} seconds ({e_t/60:.1f} minutes)")
 
     except Exception as e:
-        print(f"✗ ERROR during generation: {e}")
+        print(f"ERROR ERROR during generation: {e}")
         import traceback
 
         traceback.print_exc()
@@ -700,7 +706,7 @@ if __name__ == "__main__":
     if not generated_songs:
         raise ValueError("No songs were generated!")
 
-    print(f"✓ Generated {len(generated_songs)} song(s)")
+    print(f"OK Generated {len(generated_songs)} song(s)")
 
     # Select output
     generated_song = random.sample(generated_songs, 1)[0]
@@ -720,25 +726,25 @@ if __name__ == "__main__":
         # Verify file was created and has reasonable size
         if os.path.exists(output_path):
             file_size = os.path.getsize(output_path)
-            print(f"✓ Audio saved: {output_path}")
-            print(f"✓ File size: {file_size:,} bytes ({file_size/1024/1024:.2f} MB)")
+            print(f"OK Audio saved: {output_path}")
+            print(f"OK File size: {file_size:,} bytes ({file_size/1024/1024:.2f} MB)")
 
             if file_size < 1000:
-                print("⚠ WARNING: File size is very small, audio may be silent")
+                print("WARN WARNING: File size is very small, audio may be silent")
             elif file_size > 1000 and file_size < 10000000:
-                print("✓ File size is reasonable for 95-second song")
+                print("OK File size is reasonable for 95-second song")
             else:
-                print(f"⚠ File size is larger than expected, but may be valid")
+                print(f"WARN File size is larger than expected, but may be valid")
         else:
-            print("✗ ERROR: Output file was not created")
+            print("ERROR ERROR: Output file was not created")
 
     except TimeoutException as e:
-        print(f"✗ ERROR: Audio saving timed out: {e}")
-        print("⚠ This indicates a codec or backend issue")
-        print("⚠ Try installing: pip install scipy soundfile")
+        print(f"ERROR ERROR: Audio saving timed out: {e}")
+        print("WARN This indicates a codec or backend issue")
+        print("WARN Try installing: pip install scipy soundfile")
         raise
     except Exception as e:
-        print(f"✗ ERROR saving audio: {e}")
+        print(f"ERROR ERROR saving audio: {e}")
         import traceback
         traceback.print_exc()
         raise
@@ -760,9 +766,9 @@ if __name__ == "__main__":
             mastered_path = os.path.join(output_dir, "output_mastered.wav")
             master_audio_file(output_path, mastered_path, preset=args.master_preset, verbose=True)
             final_output_path = mastered_path
-            print(f"✓ Mastered audio saved to: {mastered_path}")
+            print(f"OK Mastered audio saved to: {mastered_path}")
         except Exception as e:
-            print(f"⚠ Mastering failed: {e}")
+            print(f"WARN Mastering failed: {e}")
             print("  Raw output still available at:", output_path)
 
     print("\n" + "=" * 60)

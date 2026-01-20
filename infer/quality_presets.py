@@ -186,7 +186,7 @@ def print_presets(verbose: bool = False):
         print(f"{name:12} | {preset.steps:5} | {preset.cfg_strength:4.1f} | {cpu_time:8} | {gpu_time:8} | {preset.description}")
 
         if verbose:
-            print(f"             └─ Recommended for: {preset.recommended_for}")
+            print(f"             - Recommended for: {preset.recommended_for}")
 
     print()
 

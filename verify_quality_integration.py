@@ -17,7 +17,7 @@ def check_file_exists(path, description):
     """Check if a file exists"""
     full_path = PROJECT_ROOT / path
     exists = full_path.exists()
-    status = "✓" if exists else "✗"
+    status = "OK" if exists else "ERROR"
     print(f"  {status} {description}: {path}")
     return exists
 
@@ -29,29 +29,29 @@ def check_import(module_path, description):
             exec(f"from {'.'.join(parts[:-1])} import {parts[-1]}")
         else:
             exec(f"import {module_path}")
-        print(f"  ✓ {description}: {module_path}")
+        print(f"  OK {description}: {module_path}")
         return True
     except ImportError as e:
-        print(f"  ✗ {description}: {module_path} - {e}")
+        print(f"  ERROR {description}: {module_path} - {e}")
         return False
     except Exception as e:
-        print(f"  ⚠ {description}: {module_path} - {e}")
+        print(f"  WARN {description}: {module_path} - {e}")
         return False
 
 def check_integration_in_file(file_path, search_terms, description):
     """Check if specific code is integrated in a file"""
     full_path = PROJECT_ROOT / file_path
     if not full_path.exists():
-        print(f"  ✗ {description}: File not found - {file_path}")
+        print(f"  ERROR {description}: File not found - {file_path}")
         return False
 
     content = full_path.read_text()
     all_found = True
     for term in search_terms:
         if term in content:
-            print(f"  ✓ {description}: Found '{term[:40]}...'")
+            print(f"  OK {description}: Found '{term[:40]}...'")
         else:
-            print(f"  ✗ {description}: Missing '{term[:40]}...'")
+            print(f"  ERROR {description}: Missing '{term[:40]}...'")
             all_found = False
     return all_found
 
@@ -122,7 +122,7 @@ def main():
     train_scp = PROJECT_ROOT / "dataset/train.scp"
     if train_scp.exists():
         num_samples = len(train_scp.read_text().strip().split("\n"))
-        print(f"  ✓ Training samples available: {num_samples}")
+        print(f"  OK Training samples available: {num_samples}")
 
     # 5. Check ODE improvements in cfm.py
     print("\n[5/5] Checking ODE improvements in model/cfm.py...")
@@ -140,7 +140,7 @@ def main():
     # Summary
     print("\n" + "="*70)
     if all_passed:
-        print(" ✓ ALL QUALITY IMPROVEMENTS VERIFIED!")
+        print(" OK ALL QUALITY IMPROVEMENTS VERIFIED!")
         print("="*70)
         print("\nYou can now use:")
         print("  1. Quality presets:    python -m infer.infer --preset high ...")
@@ -149,16 +149,16 @@ def main():
         print("  4. High-quality gen:   python generate_high_quality.py --lyrics song.lrc --genre Pop")
         print("  5. LoRA training:      python train/train_lora.py --verify-only")
     else:
-        print(" ⚠ SOME CHECKS FAILED - See above for details")
+        print(" WARN SOME CHECKS FAILED - See above for details")
         print("="*70)
 
     # Check if PEFT is available for LoRA
     print("\n[EXTRA] Checking LoRA dependencies...")
     try:
         import peft
-        print(f"  ✓ PEFT library installed (version {peft.__version__})")
+        print(f"  OK PEFT library installed (version {peft.__version__})")
     except ImportError:
-        print("  ⚠ PEFT library NOT installed")
+        print("  WARN PEFT library NOT installed")
         print("    Install with: pip install peft")
         print("    Required for LoRA fine-tuning")
 

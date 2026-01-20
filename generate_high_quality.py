@@ -75,7 +75,8 @@ def run_generation(
     preset="high",
     auto_master=True,
     master_preset="balanced",
-    audio_length=95
+    audio_length=95,
+    lora_path=None
 ):
     """Run the full generation pipeline"""
 
@@ -102,6 +103,9 @@ def run_generation(
 
     if auto_master:
         cmd.extend(["--auto-master", "--master-preset", master_preset])
+    
+    if lora_path:
+        cmd.extend(["--lora-path", str(lora_path)])
 
     print(f"\nRunning generation...")
     print(f"Command: {' '.join(cmd[:6])}...")
@@ -178,6 +182,7 @@ Quality Presets:
 
     # Output options
     parser.add_argument("--output-dir", "-o", default="output", help="Output directory")
+    parser.add_argument("--lora-path", help="Path to LoRA adapter directory (requires PEFT library)")
 
     args = parser.parse_args()
 
@@ -209,7 +214,8 @@ Quality Presets:
         preset=args.preset,
         auto_master=not args.no_master,
         master_preset=args.master_preset,
-        audio_length=args.audio_length
+        audio_length=args.audio_length,
+        lora_path=args.lora_path
     )
 
     sys.exit(0 if success else 1)
