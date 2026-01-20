@@ -490,6 +490,26 @@ if __name__ == "__main__":
         required=False,
         help="ODE integration timeout in seconds (default: auto-calculated for CPU)",
     )
+    parser.add_argument(
+        "--preset",
+        type=str,
+        default=None,
+        required=False,
+        choices=["preview", "draft", "standard", "high", "maximum", "ultra"],
+        help="Quality preset (overrides --steps and --cfg-strength)",
+    )
+    parser.add_argument(
+        "--auto-master",
+        action="store_true",
+        help="Automatically apply mastering to output",
+    )
+    parser.add_argument(
+        "--master-preset",
+        type=str,
+        default="balanced",
+        choices=["subtle", "balanced", "loud", "broadcast"],
+        help="Mastering preset (used with --auto-master)",
+    )
     args = parser.parse_args()
 
     # Validation
@@ -503,6 +523,25 @@ if __name__ == "__main__":
         assert (
             args.ref_song and args.edit_segments
         ), "reference song and edit segments should be provided for editing"
+
+    # Load quality presets if specified
+    if args.preset:
+        try:
+            from infer.quality_presets import get_preset
+        except ImportError:
+            from quality_presets import get_preset
+
+        preset = get_preset(args.preset)
+        print(f"\n✓ Using quality preset: {args.preset}")
+        print(f"  - Steps: {preset.steps}")
+        print(f"  - CFG Strength: {preset.cfg_strength}")
+        print(f"  - {preset.description}")
+
+        # Override steps and cfg if not explicitly set
+        if args.steps is None:
+            args.steps = preset.steps
+        if args.cfg_strength is None:
+            args.cfg_strength = preset.cfg_strength
 
     # Device detection
     if torch.cuda.is_available():
@@ -704,10 +743,35 @@ if __name__ == "__main__":
         traceback.print_exc()
         raise
 
+    # Auto-mastering if requested
+    final_output_path = output_path
+    if args.auto_master:
+        print("\n" + "=" * 60)
+        print("APPLYING MASTERING")
+        print("=" * 60)
+        try:
+            try:
+                from post_processing.mastering import master_audio_file
+            except ImportError:
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from post_processing.mastering import master_audio_file
+
+            mastered_path = os.path.join(output_dir, "output_mastered.wav")
+            master_audio_file(output_path, mastered_path, preset=args.master_preset, verbose=True)
+            final_output_path = mastered_path
+            print(f"✓ Mastered audio saved to: {mastered_path}")
+        except Exception as e:
+            print(f"⚠ Mastering failed: {e}")
+            print("  Raw output still available at:", output_path)
+
     print("\n" + "=" * 60)
     print("GENERATION COMPLETE!")
     print("=" * 60)
-    print(f"Output: {output_path}")
+    print(f"Output: {final_output_path}")
+    if args.auto_master and final_output_path != output_path:
+        print(f"Raw output: {output_path}")
     print(f"Duration: {audio_length}s")
     print(f"Generation time: {e_t:.1f}s ({e_t/60:.1f}min)")
-    print("Please check the audio file for quality.")
+    if not args.auto_master:
+        print("\nTIP: Add --auto-master for automatic audio mastering")
