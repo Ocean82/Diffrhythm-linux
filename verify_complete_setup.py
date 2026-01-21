@@ -98,7 +98,7 @@ def check_fixes_applied():
         ("Latent validation", "def validate_latents("),
         ("NaN/Inf checking", "torch.isnan(output).any()"),
         ("Comprehensive error handling", "except Exception as e:"),
-        ("Detailed logging", "print(f\"   ✓"),
+        ("Detailed logging", "print(\"OK ") ,
         ("Silent audio handling", "Audio is silent"),
     ]
     

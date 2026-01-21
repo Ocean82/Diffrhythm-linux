@@ -400,6 +400,8 @@ def inference(
 
             # Safe normalization
             output = safe_normalize_audio(output.to(torch.float32))
+            if torch.max(torch.abs(output)).item() == 0:
+                raise ValueError("VAE decode produced silent audio")
 
             outputs.append(output.cpu())
             print(f"     OK Latent {i+1} processed successfully")
@@ -519,16 +521,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Validation
-    assert (
-        args.ref_prompt or args.ref_audio_path
-    ), "either ref_prompt or ref_audio_path should be provided"
-    assert not (
-        args.ref_prompt and args.ref_audio_path
-    ), "only one of them should be provided"
-    if args.edit:
-        assert (
-            args.ref_song and args.edit_segments
-        ), "reference song and edit segments should be provided for editing"
+    if not (args.ref_prompt or args.ref_audio_path):
+        parser.error("either ref_prompt or ref_audio_path should be provided")
+    if args.ref_prompt and args.ref_audio_path:
+        parser.error("only one of them should be provided")
+    if args.edit and (not args.ref_song or not args.edit_segments):
+        parser.error("reference song and edit segments should be provided for editing")
 
     # Load quality presets if specified
     if args.preset:
@@ -560,8 +558,8 @@ if __name__ == "__main__":
         device = "cpu"
         print(f"WARN Using CPU - inference will be slow!")
 
-        # CPU optimization: significantly reduce steps for faster inference
-        default_steps = 8  # Reduced from 32 - still produces reasonable quality
+        # CPU optimization: reduce steps for faster inference
+        default_steps = 16  # Reduced from 32 - balanced for quality/latency
         default_cfg = 2.0  # Reduced from 4.0 for CPU
 
         # Calculate estimated time

@@ -4,7 +4,7 @@ echo "=== DiffRhythm WSL Setup Verification ==="
 echo
 
 # Check if we're in WSL
-if [[ -f /proc/version ]] && grep -q Microsoft /proc/version; then
+if [[ -f /proc/version ]] && grep -qi microsoft /proc/version; then
     echo "✓ Running in WSL"
 else
     echo "✗ Not running in WSL"

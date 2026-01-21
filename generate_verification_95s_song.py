@@ -126,7 +126,9 @@ def run_generation(lyrics_path):
         "--lrc-path", lyrics_path,
         "--ref-prompt", "pop song, upbeat, energetic vocals, clear singing",
         "--audio-length", "95",
-        "--output-dir", "output"
+        "--output-dir", "output",
+        "--steps", "16",
+        "--cfg-strength", "2.0",
     ]
     
     print("Command:")
@@ -134,7 +136,11 @@ def run_generation(lyrics_path):
     print()
     
     # Ask user to confirm
-    response = input("Start generation? (y/N): ").strip().lower()
+    try:
+        response = input("Start generation? (y/N): ").strip().lower()
+    except EOFError:
+        print("Generation cancelled (no input available).")
+        return False
     if response != 'y':
         print("Generation cancelled.")
         return False

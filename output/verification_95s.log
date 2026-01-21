@@ -1,0 +1,54 @@
+
+================================================================================
+                     DIFFRHYTHM 95-SECOND VERIFICATION SONG                     
+================================================================================
+
+This script will:
+  1. Check all prerequisites
+  2. Create test lyrics
+  3. Generate a 95-second song with vocals
+  4. Verify the output file
+  5. Guide quality assessment
+
+⏱ Estimated time: 30-60 minutes on WSL CPU
+
+
+────────────────────────────────────────────────────────────────────────────────
+► CHECKING PREREQUISITES
+────────────────────────────────────────────────────────────────────────────────
+
+Required Libraries:
+  ✓ librosa         - Audio loading
+  ✓ torchaudio      - Audio I/O
+  ✓ torch           - PyTorch
+  ✓ scipy           - WAV file writing
+
+Optional Libraries:
+  ✓ soundfile       - Audio fallback
+  ✓ audioread       - Extended codec support
+  ✓ mutagen         - MP3 metadata
+
+✓ All prerequisites met!
+
+────────────────────────────────────────────────────────────────────────────────
+► CREATING TEST LYRICS
+────────────────────────────────────────────────────────────────────────────────
+
+✓ Created test lyrics: output/verification_95s.lrc
+✓ Duration: ~95 seconds
+✓ Contains: 24 lyric lines with vocals
+
+────────────────────────────────────────────────────────────────────────────────
+► GENERATING 95-SECOND SONG WITH VOCALS
+────────────────────────────────────────────────────────────────────────────────
+
+Generation Parameters:
+  Duration: 95 seconds
+  Style: Pop song, upbeat, energetic vocals
+  Quality: Good (16 ODE steps, optimized)
+  Expected Time: 25-50 minutes on WSL CPU
+
+Command:
+  /mnt/d/EMBERS-BANK/DiffRhythm-Linux/.venv/bin/python infer/infer.py --lrc-path output/verification_95s.lrc --ref-prompt pop song, upbeat, energetic vocals, clear singing --audio-length 95 --output-dir output
+
+Start generation? (y/N): 
