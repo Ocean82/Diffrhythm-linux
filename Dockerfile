@@ -23,25 +23,26 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy application code (excluding pretrained models)
-COPY --exclude=pretrained . .
+# Copy application code
+COPY . .
 
 # Create directories
 RUN mkdir -p /app/output /app/pretrained
 
 # Set Python path
 ENV PYTHONPATH=/app
+ENV DEVICE=cpu
 
-# Download models at runtime
-COPY download_models.py .
-RUN python3 download_models.py
+# Make entrypoint executable
+RUN chmod +x scripts/entrypoint.sh
 
 # Expose port for web app
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import torch; print('OK')" || exit 1
+    CMD python3 -c "import requests; requests.get('http://localhost:8000/health', timeout=5)" || exit 1
 
-# Default command
+# Default command via entrypoint
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["python3", "api.py"]

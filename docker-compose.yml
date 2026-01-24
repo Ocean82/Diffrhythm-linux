@@ -7,10 +7,12 @@ services:
       - "8000:8000"
     volumes:
       - ./output:/app/output
+      - ./pretrained:/app/pretrained
       - ./infer/example:/app/infer/example
     environment:
       - PYTHONPATH=/app
       - TORCH_HOME=/app/.torch
+      - DEVICE=cpu
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python3", "test_core_models.py"]

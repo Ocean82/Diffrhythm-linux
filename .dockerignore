@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Python
 __pycache__
@@ -8,28 +9,28 @@ __pycache__
 *.pyo
 *.pyd
 .Python
-env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git
-.mypy_cache
-.pytest_cache
-.hypothesis
-
-# Virtual environments
 .venv
-venv/
-ENV/
-env/
-.env
+venv
+env
+ENV
+*.egg-info
+dist
+build
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+*.md
+docs/
+*.txt
+!requirements.txt
 
 # IDE
 .vscode/
@@ -37,32 +38,71 @@ env/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# Documentation
-*.md
-docs/
+# Logs
+*.log
+logs/
 
-# Tests (keep test files we need)
-!test_core_models.py
-!verify_deployment.py
+# App Specific (keep structure, exclude data)
+output/*
+!output/.gitkeep
+pretrained/*
+!pretrained/.gitkeep
+temp/*
+!temp/.gitkeep
 
-# Build artifacts
-build/
-dist/
-*.egg-info/
+# Development scripts
+debug_*.py
+test_*.py
+*_debug.py
+quick_*.py
+fix_*.py
+check_*.py
+diagnose_*.py
+analyze_*.py
+verify_*.py
+generate_*.py
+!generate_verification_95s_song.py
 
-# Temporary files
-*.tmp
-*.temp
+# WSL/Windows specific
+*.bat
+*.sh
+!scripts/*.sh
+!scripts/entrypoint.sh
 
-# Large model files (download at runtime)
-pretrained/
+# Docker files (keep only production)
+Dockerfile
+docker/
+docker-compose.yml
+
+# Investigation/analysis files
+*_INVESTIGATION*.md
+*_ANALYSIS*.md
+*_REPORT*.md
+*_SUMMARY*.md
+*_GUIDE*.md
+*_STATUS*.md
+*_TROUBLESHOOTING*.md
+*_FIXES*.md
+*_CHANGES*.md
+*_REFERENCE*.md
+*_INDEX*.md
+*_BREAKDOWN*.md
+*_INTEGRATION*.md
+*_IMPROVEMENTS*.md
+*_DEPLOYMENT*.md
+!DEPLOYMENT.md
+
+# Model checkpoints (too large)
+ckpts/
+checkpoints/
+
+# Dataset (too large)
+dataset/
+
+# Third party (will be installed)
+thirdparty/
+
+# Training (not needed for inference)
+train/
