@@ -15,6 +15,8 @@ wandb
 *.env
 !*.env.example
 !config/*.env.example
+# Template files (not secrets)
+!config/ec2-config.env
 backend/.env
 backend/.env.*
 # Snyk Security Extension - AI Rules (auto-generated)

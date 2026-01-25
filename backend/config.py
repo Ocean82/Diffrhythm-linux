@@ -5,6 +5,24 @@ import os
 from typing import Optional
 from pathlib import Path
 
+# Load environment variables from .env file if available
+try:
+    from dotenv import load_dotenv
+    # Try to load .env from backend directory first, then project root
+    backend_env = Path(__file__).parent / ".env"
+    root_env = Path(__file__).parent.parent / ".env"
+    
+    if backend_env.exists():
+        load_dotenv(backend_env, override=False)
+    elif root_env.exists():
+        load_dotenv(root_env, override=False)
+    else:
+        # Try loading from current directory (for compatibility)
+        load_dotenv(override=False)
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
+
 
 class Config:
     """Application configuration"""
