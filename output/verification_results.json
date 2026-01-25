@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Dockerfile.prod",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "Dockerfile.prod exists",
+      "Entry point correctly set to 'uvicorn backend.api:app'",
+      "Health check configured",
+      "Non-root user configured",
+      "Multi-stage build detected"
+    ]
+  },
+  {
+    "name": "docker-compose.prod.yml",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "docker-compose.prod.yml exists",
+      "Service name 'diffrhythm-api' found",
+      "Port 8000 mapped correctly",
+      "Required volumes configured",
+      "Health check configured in compose"
+    ]
+  },
+  {
+    "name": "backend/api.py",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "backend/api.py exists",
+      "FastAPI application found",
+      "ModelManager class found",
+      "JobManager class found",
+      "Lifespan manager found",
+      "Route /api/v1/health found",
+      "Route /api/v1/generate found",
+      "Route /api/v1/status found",
+      "Route /api/v1/download found",
+      "Route /api/v1/queue found"
+    ]
+  },
+  {
+    "name": "backend/config.py",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "backend/config.py exists",
+      "Config class found",
+      "Configuration DEVICE found",
+      "Configuration MODEL_CACHE_DIR found",
+      "Configuration OUTPUT_DIR found",
+      "Configuration API_PREFIX found"
+    ]
+  },
+  {
+    "name": "Model Loading Configuration",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "infer/infer_utils.py exists",
+      "prepare_model function found",
+      "Model repository ASLP-lab/DiffRhythm-1_2 referenced",
+      "Model repository ASLP-lab/DiffRhythm-vae referenced",
+      "Model repository OpenMuQ/MuQ-MuLan-large referenced",
+      "Model cache directory configured"
+    ]
+  },
+  {
+    "name": "requirements.txt",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "requirements.txt exists",
+      "Critical dependency fastapi found",
+      "Critical dependency uvicorn found",
+      "Critical dependency torch found",
+      "Critical dependency torchaudio found",
+      "Critical dependency transformers found",
+      "Critical dependency librosa found",
+      "backend/requirements.txt exists",
+      "Backend monitoring dependencies found"
+    ]
+  },
+  {
+    "name": "Inference Pipeline",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "infer/infer.py exists",
+      "inference function found",
+      "save_audio_robust function found",
+      "safe_normalize_audio function found"
+    ]
+  },
+  {
+    "name": "Security Configuration",
+    "passed": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+      "backend/security.py exists",
+      "CORS configuration found",
+      "Rate limiting found"
+    ]
+  }
+]

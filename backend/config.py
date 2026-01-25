@@ -61,6 +61,12 @@ class Config:
     ENABLE_METRICS: bool = os.getenv("ENABLE_METRICS", "true").lower() == "true"
     METRICS_PATH: str = os.getenv("METRICS_PATH", "/api/v1/metrics")
     
+    # Payment Configuration
+    STRIPE_SECRET_KEY: Optional[str] = os.getenv("STRIPE_SECRET_KEY", None)
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = os.getenv("STRIPE_PUBLISHABLE_KEY", None)
+    STRIPE_WEBHOOK_SECRET: Optional[str] = os.getenv("STRIPE_WEBHOOK_SECRET", None)
+    REQUIRE_PAYMENT_FOR_GENERATION: bool = os.getenv("REQUIRE_PAYMENT_FOR_GENERATION", "false").lower() == "true"
+    
     @classmethod
     def ensure_directories(cls):
         """Ensure required directories exist"""

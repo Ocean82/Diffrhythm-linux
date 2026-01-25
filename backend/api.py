@@ -13,12 +13,14 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import torch
 import uvicorn
+import hmac
+import hashlib
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -43,6 +45,7 @@ from backend.security import (
     get_cors_config,
     get_security_headers
 )
+from backend.payment_verification import verify_payment_intent, check_payment_required, STRIPE_AVAILABLE
 
 # Import DiffRhythm modules
 try:
@@ -82,15 +85,16 @@ class GenerationRequest(BaseModel):
     batch_size: int = Field(1, description="Number of generations", ge=1, le=4)
     steps: Optional[int] = Field(None, description="Override ODE integration steps (higher = better quality, slower)")
     cfg_strength: Optional[float] = Field(None, description="Override CFG strength (higher = more prompt adherence)")
-    preset: Optional[str] = Field(None, description="Quality preset: preview, draft, standard, high, maximum, ultra")
+    preset: Optional[str] = Field("high", description="Quality preset: preview, draft, standard, high, maximum, ultra")
     
     @validator("preset")
     def validate_preset(cls, v):
         if v is not None and v not in ["preview", "draft", "standard", "high", "maximum", "ultra"]:
             raise ValueError("preset must be one of: preview, draft, standard, high, maximum, ultra")
         return v
-    auto_master: bool = Field(False, description="Automatically apply mastering to output")
+    auto_master: bool = Field(True, description="Automatically apply mastering to output")
     master_preset: str = Field("balanced", description="Mastering preset: subtle, balanced, loud, broadcast")
+    payment_intent_id: Optional[str] = Field(None, description="Stripe payment intent ID for payment verification")
     
     @validator("audio_length")
     def validate_audio_length(cls, v):
@@ -285,22 +289,26 @@ class JobManager:
         # Determine quality settings
         steps = job.get("steps")
         cfg_strength = job.get("cfg_strength")
-        preset = job.get("preset")
+        preset = job.get("preset", "high")  # Default to "high" for Suno-style quality
         
-        # Apply quality preset if specified
-        if preset:
-            try:
-                from infer.quality_presets import get_preset
-                quality_preset = get_preset(preset)
-                if steps is None:
-                    steps = quality_preset.steps
-                if cfg_strength is None:
-                    cfg_strength = quality_preset.cfg_strength
-                logger.info(f"Using quality preset '{preset}': {steps} steps, CFG {cfg_strength}")
-            except Exception as e:
-                logger.warning(f"Failed to load preset '{preset}': {e}, using defaults")
+        # Apply quality preset
+        try:
+            from infer.quality_presets import get_preset
+            quality_preset = get_preset(preset)
+            if steps is None:
+                steps = quality_preset.steps
+            if cfg_strength is None:
+                cfg_strength = quality_preset.cfg_strength
+            logger.info(f"Using quality preset '{preset}': {steps} steps, CFG {cfg_strength}")
+        except Exception as e:
+            logger.warning(f"Failed to load preset '{preset}': {e}, using defaults")
+            # Fallback to defaults
+            if steps is None:
+                steps = Config.CPU_STEPS if model_manager.device == "cpu" else 32
+            if cfg_strength is None:
+                cfg_strength = Config.CPU_CFG_STRENGTH if model_manager.device == "cpu" else 4.0
         
-        # Use defaults if not specified
+        # Use defaults if not specified (fallback)
         if steps is None:
             steps = Config.CPU_STEPS if model_manager.device == "cpu" else 32
         if cfg_strength is None:
@@ -377,9 +385,10 @@ class JobManager:
             "batch_size": request.batch_size,
             "steps": request.steps,
             "cfg_strength": request.cfg_strength,
-            "preset": request.preset,
+            "preset": request.preset or "high",  # Default to "high" if None
             "auto_master": request.auto_master,
             "master_preset": request.master_preset,
+            "payment_intent_id": request.payment_intent_id,
             "created_at": datetime.utcnow().isoformat() + "Z",
             "started_at": None,
             "completed_at": None,
@@ -555,6 +564,23 @@ async def health_check():
     )
 
 
+# Route alias for frontend compatibility (/api/generate -> /api/v1/generate)
+@app.post(
+    "/api/generate",
+    response_model=GenerationResponse,
+    tags=["Generation"],
+    dependencies=[Depends(verify_api_key_dependency)],
+    include_in_schema=False  # Don't show in docs, use /api/v1/generate instead
+)
+@limiter.limit(f"{Config.RATE_LIMIT_PER_HOUR}/hour")
+async def generate_music_alias(
+    request: GenerationRequest,
+    api_request: Request
+):
+    """Alias for /api/v1/generate for frontend compatibility"""
+    return await generate_music(request, api_request)
+
+
 @app.post(
     f"{Config.API_PREFIX}/generate",
     response_model=GenerationResponse,
@@ -569,6 +595,29 @@ async def generate_music(
     """Submit a music generation job"""
     if not model_manager.is_loaded:
         raise ModelNotLoadedError("Models not loaded. Please wait for initialization.")
+    
+    # Payment verification if required
+    if check_payment_required():
+        if not request.payment_intent_id:
+            raise HTTPException(
+                status_code=402,
+                detail="Payment required. Please provide a valid payment_intent_id."
+            )
+        
+        is_valid, error_msg = verify_payment_intent(request.payment_intent_id)
+        if not is_valid:
+            logger.warning(f"Payment verification failed for {request.payment_intent_id}: {error_msg}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment verification failed: {error_msg}"
+            )
+        logger.info(f"Payment verified for generation request: {request.payment_intent_id}")
+    elif request.payment_intent_id:
+        # Optional payment verification even if not required
+        is_valid, error_msg = verify_payment_intent(request.payment_intent_id)
+        if not is_valid:
+            logger.warning(f"Optional payment verification failed: {error_msg}")
+            # Don't fail the request if payment is optional, just log warning
     
     try:
         job_id = job_manager.create_job(request)
@@ -651,6 +700,88 @@ async def get_metrics():
     if not Config.ENABLE_METRICS:
         raise HTTPException(status_code=404, detail="Metrics disabled")
     return metrics.get_metrics_response()
+
+
+@app.post("/api/webhooks/stripe", tags=["Webhooks"])
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str = Header(None, alias="stripe-signature")
+):
+    """
+    Stripe webhook endpoint for payment events
+    
+    Handles:
+    - payment_intent.succeeded: Payment completed successfully
+    - payment_intent.payment_failed: Payment failed
+    - payment_intent.canceled: Payment canceled
+    """
+    if not Config.STRIPE_WEBHOOK_SECRET:
+        logger.warning("Stripe webhook secret not configured, rejecting webhook")
+        raise HTTPException(status_code=403, detail="Webhook secret not configured")
+    
+    if not stripe_signature:
+        logger.warning("Missing Stripe signature header")
+        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
+    
+    try:
+        body = await request.body()
+        
+        # Verify webhook signature
+        try:
+            if not STRIPE_AVAILABLE:
+                raise HTTPException(status_code=500, detail="Stripe library not available")
+            
+            # Import stripe - it's already available via payment_verification import
+            try:
+                import stripe
+            except ImportError:
+                raise HTTPException(status_code=500, detail="Stripe library not available")
+            
+            event = stripe.Webhook.construct_event(
+                body,
+                stripe_signature,
+                Config.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError as e:
+            logger.error(f"Invalid payload: {e}")
+            raise HTTPException(status_code=400, detail="Invalid payload")
+        except stripe.error.SignatureVerificationError as e:
+            logger.error(f"Invalid signature: {e}")
+            raise HTTPException(status_code=400, detail="Invalid signature")
+        
+        # Handle the event
+        event_type = event.get("type")
+        event_data = event.get("data", {}).get("object", {})
+        
+        logger.info(f"Received Stripe webhook: {event_type}")
+        
+        if event_type == "payment_intent.succeeded":
+            payment_intent_id = event_data.get("id")
+            amount = event_data.get("amount", 0)
+            logger.info(f"Payment succeeded: {payment_intent_id} (${amount/100:.2f})")
+            # Payment is verified, generation can proceed
+            # Additional processing can be added here (e.g., update database, send notification)
+            
+        elif event_type == "payment_intent.payment_failed":
+            payment_intent_id = event_data.get("id")
+            logger.warning(f"Payment failed: {payment_intent_id}")
+            # Handle failed payment (e.g., notify user, log for review)
+            
+        elif event_type == "payment_intent.canceled":
+            payment_intent_id = event_data.get("id")
+            logger.info(f"Payment canceled: {payment_intent_id}")
+            # Handle canceled payment
+            
+        else:
+            logger.info(f"Unhandled event type: {event_type}")
+        
+        return {"status": "success", "event_type": event_type}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
 
 
 # Error handlers

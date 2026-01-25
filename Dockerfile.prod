@@ -22,14 +22,23 @@ FROM base AS dependencies
 
 WORKDIR /app
 
+# Set TMPDIR to use more space-efficient location
+ENV TMPDIR=/tmp
+ENV PIP_TEMP_DIR=/tmp
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 COPY backend/requirements.txt backend/requirements.txt
 
-# Install Python dependencies
+# Install Python dependencies with aggressive cleanup
+# Install jieba separately from wheel to avoid build issues
 RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir --only-binary :all: jieba==0.42.1 || \
+    pip3 install --no-cache-dir jieba==0.42.1 && \
     pip3 install --no-cache-dir -r requirements.txt && \
-    pip3 install --no-cache-dir -r backend/requirements.txt
+    pip3 install --no-cache-dir -r backend/requirements.txt && \
+    pip3 cache purge && \
+    rm -rf /tmp/* /var/tmp/* /root/.cache/pip
 
 # Stage 3: Application
 FROM dependencies AS application
