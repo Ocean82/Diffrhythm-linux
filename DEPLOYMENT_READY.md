@@ -1,112 +1,116 @@
-# DiffRhythm AWS Deployment Readiness Report
+# Deployment Ready - SSH Fixed
 
-## ✅ **MODELS STATUS - ALL READY**
+**Date:** January 24, 2026  
+**Status:** ✅ SSH connection working
 
-### Core DiffRhythm Models
-- **DiffRhythm-1_2** (Base): 2.07 GB ✅
-- **DiffRhythm-1_2-full**: 2.07 GB ✅  
-- **VAE Model**: 0.58 GB ✅
+## Next Steps - Deployment & Testing
 
-### Supporting Models
-- **MuQ-MuLan-large**: 2.65 GB ✅
-- **XLM-RoBERTa-base**: 1.12 GB ✅
+### Step 1: Deploy Code to Server
 
-### Total Model Size: ~8.5 GB
+```powershell
+cd d:\EMBERS-BANK\DiffRhythm-LINUX
 
-## ✅ **SYMLINK RESOLUTION - COMPLETE**
+# Deploy backend code
+scp -i "C:\Users\sammy\.ssh\server_saver_key" -r backend/ ubuntu@52.0.207.242:/home/ubuntu/app/
 
-All HuggingFace symlinks have been resolved to actual files:
-- No more symlink dependencies
-- Ready for Docker containers
-- Compatible with AWS ECS/Fargate/Lambda
-- Works with rsync/scp deployment
+# Deploy test scripts
+scp -i "C:\Users\sammy\.ssh\server_saver_key" test_server_implementation.py ubuntu@52.0.207.242:/home/ubuntu/app/
+scp -i "C:\Users\sammy\.ssh\server_saver_key" test_payment_flow.py ubuntu@52.0.207.242:/home/ubuntu/app/
+```
 
-## ✅ **FUNCTIONALITY VERIFIED**
+### Step 2: Restart Service
 
-Core functionality tested and working:
-- Model loading ✅
-- Configuration parsing ✅
-- Text-to-style embedding ✅
-- VAE encoding/decoding ✅
-- Memory usage optimized for CPU ✅
+```powershell
+ssh -i "C:\Users\sammy\.ssh\server_saver_key" ubuntu@52.0.207.242 "sudo systemctl restart burntbeats-api"
+```
 
-## 🔧 **LINUX/WSL REQUIREMENTS**
+### Step 3: Verify Service Status
 
-For full functionality in Linux environment:
+```powershell
+ssh -i "C:\Users\sammy\.ssh\server_saver_key" ubuntu@52.0.207.242 "sudo systemctl status burntbeats-api"
+```
+
+### Step 4: Run Server Tests
+
+```powershell
+ssh -i "C:\Users\sammy\.ssh\server_saver_key" ubuntu@52.0.207.242 "cd /home/ubuntu/app && python3 test_server_implementation.py"
+```
+
+### Step 5: Test Payment Flow
+
+```powershell
+ssh -i "C:\Users\sammy\.ssh\server_saver_key" ubuntu@52.0.207.242 "cd /home/ubuntu/app && python3 test_payment_flow.py"
+```
+
+### Step 6: Configure Stripe Webhook
+
+1. Go to Stripe Dashboard → Developers → Webhooks
+2. Add endpoint: `https://burntbeats.com/api/webhooks/stripe`
+3. Select events:
+   - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
+   - `payment_intent.canceled`
+4. Copy webhook signing secret to server `.env` file
+
+### Step 7: Test Webhook Delivery
+
+Use Stripe Dashboard "Send test webhook" or Stripe CLI:
 ```bash
-# Install espeak-ng (required for phonemizer)
-sudo apt-get update
-sudo apt-get install espeak-ng
-
-# Python environment
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+stripe trigger payment_intent.succeeded
 ```
 
-## 🚀 **AWS DEPLOYMENT OPTIONS**
+### Step 8: Verify Quality
 
-### Option 1: EC2 Instance
-- **Recommended**: t3.xlarge or larger (4+ vCPU, 16+ GB RAM)
-- **Storage**: 20+ GB for models + app
-- **OS**: Ubuntu 20.04+ LTS
+Generate a test song and verify:
+- Clear vocals
+- Professional production quality
+- Proper mastering applied
 
-### Option 2: ECS/Fargate
-- **CPU**: 4 vCPU minimum
-- **Memory**: 16 GB minimum  
-- **Storage**: EFS for model persistence
+## Quick Deployment Script
 
-### Option 3: Lambda (Limited)
-- **Use case**: API endpoints only
-- **Storage**: S3 for models, download to /tmp
-- **Timeout**: 15 minutes max
+```powershell
+# Save as deploy_now.ps1
+$KEY = "C:\Users\sammy\.ssh\server_saver_key"
+$SERVER = "ubuntu@52.0.207.242"
+$REMOTE_DIR = "/home/ubuntu/app"
 
-## 📦 **DOCKER DEPLOYMENT**
+Write-Host "Deploying backend code..."
+scp -i $KEY -r backend/ ${SERVER}:${REMOTE_DIR}/
 
-```dockerfile
-FROM ubuntu:20.04
+Write-Host "Deploying test scripts..."
+scp -i $KEY test_server_implementation.py ${SERVER}:${REMOTE_DIR}/
+scp -i $KEY test_payment_flow.py ${SERVER}:${REMOTE_DIR}/
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip espeak-ng \
-    && rm -rf /var/lib/apt/lists/*
+Write-Host "Restarting service..."
+ssh -i $KEY $SERVER "sudo systemctl restart burntbeats-api"
 
-# Copy application
-COPY . /app
-WORKDIR /app
+Write-Host "Checking service status..."
+ssh -i $KEY $SERVER "sudo systemctl status burntbeats-api --no-pager"
 
-# Install Python dependencies
-RUN pip install -r requirements.txt
+Write-Host "Running server tests..."
+ssh -i $KEY $SERVER "cd ${REMOTE_DIR} && python3 test_server_implementation.py"
 
-# Copy resolved model files (no symlinks)
-COPY pretrained/ /app/pretrained/
-
-EXPOSE 8000
-CMD ["python", "your_web_app.py"]
+Write-Host "Deployment complete!"
 ```
 
-## 🎯 **INTEGRATION READY**
+## Files Ready for Deployment
 
-Your DiffRhythm setup is **100% ready** for:
-- ✅ Web application integration
-- ✅ API endpoint creation  
-- ✅ AWS cloud deployment
-- ✅ Docker containerization
-- ✅ Production scaling
+- ✅ `backend/api.py` - Payment verification integrated
+- ✅ `backend/config.py` - Stripe configuration
+- ✅ `backend/payment_verification.py` - Payment verification logic
+- ✅ `test_server_implementation.py` - Server-side tests
+- ✅ `test_payment_flow.py` - Payment flow tests
 
-## 🔍 **PERFORMANCE EXPECTATIONS**
+## Remaining Tasks
 
-- **95s generation**: ~30-60 seconds on CPU
-- **285s generation**: ~90-180 seconds on CPU
-- **GPU acceleration**: 5-10x faster (if available)
-- **Memory usage**: ~8-12 GB during inference
+1. ✅ **deploy-code** - Ready to execute
+2. ✅ **restart-service** - Ready to execute
+3. ✅ **run-server-tests** - Ready to execute
+4. ⚠️ **test-payment-flow** - After deployment
+5. ⚠️ **test-webhook** - After Stripe Dashboard configuration
+6. ⚠️ **verify-quality** - After deployment
 
-## 📋 **NEXT STEPS**
+---
 
-1. Deploy to your AWS environment
-2. Install espeak-ng in Linux
-3. Test full inference pipeline
-4. Implement your web app endpoints
-5. Scale as needed
-
-**Status: READY FOR PRODUCTION DEPLOYMENT** 🎉
+**Status:** Ready for deployment  
+**Next:** Execute deployment commands above

@@ -9,5 +9,13 @@ ckpt
 wandb
 *.html
 .venv
+# Environment files with secrets
+.env
+.env.*
+*.env
+!*.env.example
+!config/*.env.example
+backend/.env
+backend/.env.*
 # Snyk Security Extension - AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
