@@ -1,6 +1,7 @@
 """
 Security utilities for DiffRhythm API
 """
+import secrets
 from typing import Optional
 from fastapi import Request, HTTPException, status
 from fastapi.security import APIKeyHeader
@@ -35,14 +36,15 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 def verify_api_key(api_key: Optional[str] = None) -> bool:
-    """Verify API key if configured"""
+    """Verify API key if configured using constant-time comparison"""
     if Config.API_KEY is None:
         return True  # No API key required
     
     if api_key is None:
         return False
     
-    return api_key == Config.API_KEY
+    # Use constant-time comparison to prevent timing attacks
+    return secrets.compare_digest(api_key, Config.API_KEY)
 
 
 async def get_api_key(request: Request) -> Optional[str]:
