@@ -20,12 +20,12 @@ Successfully added missing Stripe configuration keys from the local Phoenix proj
 - **Purpose**: Client-side Stripe operations (payment forms)
 
 ### 3. STRIPE_WEBHOOK_SECRET ✅
-- **Value**: `***REMOVED***`
+- **Value**: `whsec_nCaUM9ArPRjwqAa1lieItdDevmBasGTI`
 - **Status**: ✅ Added
 - **Purpose**: Webhook signature verification
 
 ### 4. STRIPE_ACCOUNT_ID ✅
-- **Value**: `***REMOVED***`
+- **Value**: `acct_1RbydHP38C54URjE`
 - **Status**: ✅ Added (new)
 - **Purpose**: Stripe account identification
 

@@ -16,8 +16,8 @@ The local `.env` file contains **LIVE Stripe keys** and other configuration that
 |-----|-------------|--------------|--------|
 | `STRIPE_SECRET_KEY` | `sk_live_...` *(REDACTED)* | *(empty)* | ✅ **ADD** |
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` *(REDACTED)* | *(empty)* | ✅ **ADD** |
-| `STRIPE_WEBHOOK_SECRET` | `***REMOVED***` | *(empty)* | ✅ **ADD** |
-| `STRIPE_ACCOUNT_ID` | `***REMOVED***` | *(missing)* | ✅ **ADD** |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_nCaUM9ArPRjwqAa1lieItdDevmBasGTI` | *(empty)* | ✅ **ADD** |
+| `STRIPE_ACCOUNT_ID` | `acct_1RbydHP38C54URjE` | *(missing)* | ✅ **ADD** |
 
 **Impact**: Payment verification will fail without these keys.
 
