@@ -14,8 +14,8 @@ The local `.env` file contains **LIVE Stripe keys** and other configuration that
 
 | Key | Local Value | Server Value | Action |
 |-----|-------------|--------------|--------|
-| `STRIPE_SECRET_KEY` | `***REMOVED***` | *(empty)* | ✅ **ADD** |
-| `STRIPE_PUBLISHABLE_KEY` | `***REMOVED***` | *(empty)* | ✅ **ADD** |
+| `STRIPE_SECRET_KEY` | `sk_live_...` *(REDACTED)* | *(empty)* | ✅ **ADD** |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` *(REDACTED)* | *(empty)* | ✅ **ADD** |
 | `STRIPE_WEBHOOK_SECRET` | `***REMOVED***` | *(empty)* | ✅ **ADD** |
 | `STRIPE_ACCOUNT_ID` | `***REMOVED***` | *(missing)* | ✅ **ADD** |
 
@@ -76,10 +76,10 @@ These are correctly configured for the DiffRhythm backend and should remain:
    
    Add these lines:
    ```env
-   STRIPE_SECRET_KEY=***REMOVED***
-   STRIPE_PUBLISHABLE_KEY=***REMOVED***
-   STRIPE_WEBHOOK_SECRET=***REMOVED***
-   STRIPE_ACCOUNT_ID=***REMOVED***
+   STRIPE_SECRET_KEY=sk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+   STRIPE_PUBLISHABLE_KEY=pk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+   STRIPE_WEBHOOK_SECRET=whsec_...  # REDACTED - Add your actual webhook secret
+   STRIPE_ACCOUNT_ID=acct_...  # REDACTED - Add your actual account ID
    ```
 
 2. **Restart Docker Container** after adding keys

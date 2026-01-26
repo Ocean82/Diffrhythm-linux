@@ -35,19 +35,19 @@ The server's `.env` file had **empty Stripe keys**, which would cause payment ve
 
 ### Server .env File
 ```bash
-STRIPE_SECRET_KEY=***REMOVED***
-STRIPE_PUBLISHABLE_KEY=***REMOVED***
-STRIPE_WEBHOOK_SECRET=***REMOVED***
-STRIPE_ACCOUNT_ID=***REMOVED***
+STRIPE_SECRET_KEY=sk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+STRIPE_PUBLISHABLE_KEY=pk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+STRIPE_WEBHOOK_SECRET=whsec_...  # REDACTED - Add your actual webhook secret
+STRIPE_ACCOUNT_ID=acct_...  # REDACTED - Add your actual account ID
 ```
 
 ### Container Environment
 ```bash
 $ docker exec diffrhythm-api env | grep STRIPE
-STRIPE_PUBLISHABLE_KEY=***REMOVED***
-STRIPE_SECRET_KEY=***REMOVED***
-STRIPE_ACCOUNT_ID=***REMOVED***
-STRIPE_WEBHOOK_SECRET=***REMOVED***
+STRIPE_PUBLISHABLE_KEY=pk_live_...  # REDACTED
+STRIPE_SECRET_KEY=sk_live_...  # REDACTED
+STRIPE_ACCOUNT_ID=acct_...  # REDACTED
+STRIPE_WEBHOOK_SECRET=whsec_...  # REDACTED
 ```
 ✅ **All keys successfully loaded**
 

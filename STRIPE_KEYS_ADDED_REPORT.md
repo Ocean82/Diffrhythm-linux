@@ -10,12 +10,12 @@ Successfully added missing Stripe configuration keys from the local Phoenix proj
 ## Keys Added
 
 ### 1. STRIPE_SECRET_KEY ✅
-- **Value**: `***REMOVED***`
+- **Value**: `sk_live_...` *(REDACTED)*
 - **Status**: ✅ Added
 - **Purpose**: Server-side Stripe API operations (payment verification, webhooks)
 
 ### 2. STRIPE_PUBLISHABLE_KEY ✅
-- **Value**: `***REMOVED***`
+- **Value**: `pk_live_...` *(REDACTED)*
 - **Status**: ✅ Added
 - **Purpose**: Client-side Stripe operations (payment forms)
 
@@ -47,10 +47,10 @@ Successfully added missing Stripe configuration keys from the local Phoenix proj
 
 ### Keys in .env File
 ```bash
-STRIPE_SECRET_KEY=***REMOVED***
-STRIPE_PUBLISHABLE_KEY=***REMOVED***
-STRIPE_WEBHOOK_SECRET=***REMOVED***
-STRIPE_ACCOUNT_ID=***REMOVED***
+STRIPE_SECRET_KEY=sk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+STRIPE_PUBLISHABLE_KEY=pk_live_...  # REDACTED - Add your actual key from Stripe Dashboard
+STRIPE_WEBHOOK_SECRET=whsec_...  # REDACTED - Add your actual webhook secret
+STRIPE_ACCOUNT_ID=acct_...  # REDACTED - Add your actual account ID
 ```
 
 ### Container Environment
