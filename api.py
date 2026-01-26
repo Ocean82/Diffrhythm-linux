@@ -10,6 +10,7 @@ import asyncio
 from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import torch
 import uvicorn
@@ -42,7 +43,17 @@ HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 MODEL_MAX_FRAMES = int(os.getenv("MODEL_MAX_FRAMES", "2048"))
 
+# Use an absolute path for output relative to the current working directory, not hardcoded /app/output
+DEFAULT_OUTPUT_DIR = os.path.join(os.getcwd(), "output")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
+
+# Ensure output directory exists
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 app = FastAPI(title="DiffRhythm API", version="1.1.0")
+
+# Mount output directory to serve files
+app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
 
 # Global state
 class ModelManager:
@@ -78,6 +89,7 @@ class GenerationResponse(BaseModel):
     status: str
     output_id: str
     output_path: str
+    audio_url: str
     audio_length: int
 
 @app.on_event("startup")
@@ -96,7 +108,8 @@ async def health_check():
     return {
         "status": status, 
         "models_loaded": models.is_loaded,
-        "device": models.device
+        "device": models.device,
+        "output_dir": OUTPUT_DIR
     }
 
 @app.post("/generate", response_model=GenerationResponse)
@@ -123,12 +136,17 @@ async def generate_music(request: GenerationRequest):
         # but threadpool is okay for simple deployments.
         
         loop = asyncio.get_event_loop()
-        generated_path = await loop.run_in_executor(None, _run_inference, request, max_frames, output_id)
+        generated_filename = await loop.run_in_executor(None, _run_inference, request, max_frames, output_id)
+        
+        # Construct download URL (assuming client can reach this host)
+        # In a real scenario, we might want to return a full URL based on request.base_url
+        audio_url = f"/output/{generated_filename}"
         
         return {
             "status": "success",
             "output_id": output_id,
-            "output_path": generated_path,
+            "output_path": os.path.join(OUTPUT_DIR, generated_filename),
+            "audio_url": audio_url,
             "audio_length": request.audio_length
         }
 
@@ -174,11 +192,12 @@ def _run_inference(request: GenerationRequest, max_frames: int, output_id: str) 
         raise ValueError("No audio generated")
 
     # Save output
-    output_path = f"/app/output/{output_id}.wav"
+    filename = f"{output_id}.wav"
+    output_path = os.path.join(OUTPUT_DIR, filename)
     save_audio_robust(generated_songs[0], output_path, sample_rate=44100)
     
     logger.info(f"Generation {output_id} completed and saved to {output_path}")
-    return output_path
+    return filename
 
 if __name__ == "__main__":
     uvicorn.run(app, host=HOST, port=PORT)
