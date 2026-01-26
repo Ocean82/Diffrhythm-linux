@@ -16,9 +16,11 @@ import sys
 # Cross-platform signal handling
 if sys.platform != 'win32':
     import signal
+    import threading
     HAS_SIGNAL_ALARM = True
 else:
     HAS_SIGNAL_ALARM = False
+    import threading
 
 print("Current working directory:", os.getcwd())
 
@@ -29,16 +31,28 @@ class TimeoutException(Exception):
 def audio_timeout_handler(signum, frame):
     raise TimeoutException("Audio saving timed out")
 
+def is_main_thread():
+    """Check if we're in the main thread"""
+    return threading.current_thread() is threading.main_thread()
+
 def set_timeout(seconds):
-    """Set a timeout alarm (Unix only)"""
-    if HAS_SIGNAL_ALARM:
-        signal.signal(signal.SIGALRM, audio_timeout_handler)
-        signal.alarm(seconds)
+    """Set a timeout alarm (Unix only, main thread only)"""
+    if HAS_SIGNAL_ALARM and is_main_thread():
+        try:
+            signal.signal(signal.SIGALRM, audio_timeout_handler)
+            signal.alarm(seconds)
+        except ValueError:
+            # Signal can only be used in main thread
+            pass
 
 def clear_timeout():
-    """Clear the timeout alarm (Unix only)"""
-    if HAS_SIGNAL_ALARM:
-        signal.alarm(0)
+    """Clear the timeout alarm (Unix only, main thread only)"""
+    if HAS_SIGNAL_ALARM and is_main_thread():
+        try:
+            signal.alarm(0)
+        except ValueError:
+            # Signal can only be used in main thread
+            pass
 
 try:
     from infer.infer_utils import (

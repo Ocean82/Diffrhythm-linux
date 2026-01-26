@@ -14,7 +14,8 @@ from typing import Optional, Dict, Any
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import Query
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import torch
@@ -126,6 +127,7 @@ class JobStatusResponse(BaseModel):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     output_file: Optional[str] = None
+    s3_url: Optional[str] = None  # S3 URL if file is uploaded to S3
     error: Optional[str] = None
     queue_position: Optional[int] = None
     estimated_wait_minutes: Optional[int] = None
@@ -366,6 +368,18 @@ class JobManager:
         job["status"] = "completed"
         job["output_file"] = f"{job_id}/{final_output_path.name}"
         
+        # Upload to S3 if enabled
+        if Config.S3_ENABLED:
+            try:
+                from backend.s3_storage import upload_to_s3
+                s3_url = upload_to_s3(final_output_path, job_id, final_output_path.name)
+                job["s3_url"] = s3_url
+                logger.info(f"Uploaded to S3: {s3_url}")
+            except Exception as e:
+                logger.error(f"S3 upload failed: {e}", exc_info=True)
+                # Continue with local storage only - job still succeeds
+                logger.warning(f"Job {job_id} completed but S3 upload failed. File available locally only.")
+        
         duration = (datetime.utcnow() - start_time).total_seconds()
         metrics.record_generation_duration(duration)
         metrics.increment_generation("success")
@@ -445,10 +459,35 @@ async def lifespan(app: FastAPI):
         logger.critical(f"Failed to start API: {e}", exc_info=True)
         raise
     
+    # Start cleanup task if enabled
+    cleanup_task_handle = None
+    if Config.CLEANUP_ENABLED:
+        async def cleanup_task():
+            """Periodic cleanup of old files"""
+            while True:
+                try:
+                    await asyncio.sleep(Config.CLEANUP_INTERVAL_HOURS * 3600)
+                    logger.info("Running scheduled cleanup...")
+                    from backend.cleanup import cleanup_old_files, cleanup_old_jobs
+                    result = cleanup_old_files()
+                    cleanup_old_jobs(job_manager)
+                    logger.info(f"Cleanup completed: {result}")
+                except Exception as e:
+                    logger.error(f"Cleanup task error: {e}", exc_info=True)
+        
+        cleanup_task_handle = asyncio.create_task(cleanup_task())
+        logger.info(f"Cleanup task started (interval: {Config.CLEANUP_INTERVAL_HOURS} hours)")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down DiffRhythm API...")
+    if cleanup_task_handle:
+        cleanup_task_handle.cancel()
+        try:
+            await cleanup_task_handle
+        except asyncio.CancelledError:
+            pass
     model_manager.unload()
 
 
@@ -564,6 +603,13 @@ async def health_check():
     )
 
 
+# Conditional rate limiter decorator
+def conditional_rate_limit(func):
+    """Apply rate limit decorator only if rate limiting is enabled"""
+    if Config.ENABLE_RATE_LIMIT:
+        return limiter.limit(f"{Config.RATE_LIMIT_PER_HOUR}/hour")(func)
+    return func
+
 # Route alias for frontend compatibility (/api/generate -> /api/v1/generate)
 @app.post(
     "/api/generate",
@@ -572,13 +618,14 @@ async def health_check():
     dependencies=[Depends(verify_api_key_dependency)],
     include_in_schema=False  # Don't show in docs, use /api/v1/generate instead
 )
-@limiter.limit(f"{Config.RATE_LIMIT_PER_HOUR}/hour")
+@conditional_rate_limit
 async def generate_music_alias(
-    request: GenerationRequest,
-    api_request: Request
+    gen_request: GenerationRequest,
+    request: Request
 ):
     """Alias for /api/v1/generate for frontend compatibility"""
-    return await generate_music(request, api_request)
+    # Rate limiting is handled in generate_music
+    return await generate_music(gen_request, request)
 
 
 @app.post(
@@ -587,40 +634,33 @@ async def generate_music_alias(
     tags=["Generation"],
     dependencies=[Depends(verify_api_key_dependency)]
 )
-@limiter.limit(f"{Config.RATE_LIMIT_PER_HOUR}/hour")
+@conditional_rate_limit
 async def generate_music(
-    request: GenerationRequest,
-    api_request: Request
+    gen_request: GenerationRequest,
+    request: Request
 ):
     """Submit a music generation job"""
+    # Rate limiting is handled via decorator when ENABLE_RATE_LIMIT=true
+    # When disabled, decorator is skipped, so no manual check needed here
+    
     if not model_manager.is_loaded:
         raise ModelNotLoadedError("Models not loaded. Please wait for initialization.")
     
-    # Payment verification if required
-    if check_payment_required():
-        if not request.payment_intent_id:
-            raise HTTPException(
-                status_code=402,
-                detail="Payment required. Please provide a valid payment_intent_id."
-            )
-        
-        is_valid, error_msg = verify_payment_intent(request.payment_intent_id)
-        if not is_valid:
-            logger.warning(f"Payment verification failed for {request.payment_intent_id}: {error_msg}")
-            raise HTTPException(
-                status_code=402,
-                detail=f"Payment verification failed: {error_msg}"
-            )
-        logger.info(f"Payment verified for generation request: {request.payment_intent_id}")
-    elif request.payment_intent_id:
-        # Optional payment verification even if not required
-        is_valid, error_msg = verify_payment_intent(request.payment_intent_id)
-        if not is_valid:
-            logger.warning(f"Optional payment verification failed: {error_msg}")
-            # Don't fail the request if payment is optional, just log warning
+    # Payment is now verified at download time, not generation time
+    # Store payment_intent_id in job for later verification
+    if gen_request.payment_intent_id:
+        logger.info(f"Payment intent ID provided for job: {gen_request.payment_intent_id}")
+        # Optional: Verify payment intent exists (but don't require it to be succeeded yet)
+        # This allows users to generate first, then pay before downloading
+        try:
+            is_valid, error_msg = verify_payment_intent(gen_request.payment_intent_id)
+            if not is_valid:
+                logger.warning(f"Payment intent validation warning: {error_msg} (generation will proceed)")
+        except Exception as e:
+            logger.warning(f"Payment intent validation error: {e} (generation will proceed)")
     
     try:
-        job_id = job_manager.create_job(request)
+        job_id = job_manager.create_job(gen_request)
         queue_status = job_manager.get_queue_status()
         
         queue_position = queue_status["queue_length"]
@@ -660,8 +700,15 @@ async def get_job_status(job_id: str):
     f"{Config.API_PREFIX}/download/{{job_id}}",
     tags=["Generation"]
 )
-async def download_audio(job_id: str):
-    """Download generated audio file"""
+async def download_audio(
+    job_id: str,
+    payment_intent_id: Optional[str] = Query(None, description="Stripe payment intent ID (required if payment is enabled)")
+):
+    """Download generated audio file
+    
+    Payment is required before download if REQUIRE_PAYMENT_FOR_GENERATION=true.
+    Users can generate songs for free, but must pay to download them.
+    """
     try:
         job = job_manager.get_job(job_id)
         
@@ -671,6 +718,40 @@ async def download_audio(job_id: str):
                 detail=f"Job status is {job['status']}. Only completed jobs can be downloaded."
             )
         
+        # Payment verification at download time
+        if check_payment_required():
+            # Use payment_intent_id from request parameter or from job data
+            payment_id = payment_intent_id or job.get("payment_intent_id")
+            
+            if not payment_id:
+                raise HTTPException(
+                    status_code=402,
+                    detail="Payment required to download. Please provide a valid payment_intent_id as a query parameter."
+                )
+            
+            # Verify payment intent is succeeded
+            is_valid, error_msg = verify_payment_intent(payment_id)
+            if not is_valid:
+                logger.warning(f"Payment verification failed for download {job_id}: {error_msg}")
+                raise HTTPException(
+                    status_code=402,
+                    detail=f"Payment verification failed: {error_msg}"
+                )
+            logger.info(f"Payment verified for download: {job_id} (payment_intent: {payment_id})")
+        
+        # Check for S3 URL first, then fall back to local file
+        s3_url = job.get("s3_url")
+        if s3_url and Config.S3_ENABLED:
+            try:
+                from backend.s3_storage import get_s3_presigned_url
+                # Determine filename from job output_file
+                filename = job.get("output_file", "").split("/")[-1] if job.get("output_file") else "output_fixed.wav"
+                download_url = get_s3_presigned_url(job_id, filename)
+                return RedirectResponse(url=download_url, status_code=302)
+            except Exception as e:
+                logger.warning(f"S3 download failed, falling back to local: {e}")
+        
+        # Local file download
         if not job.get("output_file"):
             raise HTTPException(status_code=404, detail="Output file not found")
         

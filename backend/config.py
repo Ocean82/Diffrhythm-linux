@@ -85,6 +85,19 @@ class Config:
     STRIPE_WEBHOOK_SECRET: Optional[str] = os.getenv("STRIPE_WEBHOOK_SECRET", None)
     REQUIRE_PAYMENT_FOR_GENERATION: bool = os.getenv("REQUIRE_PAYMENT_FOR_GENERATION", "false").lower() == "true"
     
+    # S3 Storage Configuration
+    S3_ENABLED: bool = os.getenv("S3_ENABLED", "false").lower() == "true"
+    S3_BUCKET: Optional[str] = os.getenv("S3_BUCKET", None)
+    S3_REGION: str = os.getenv("S3_REGION", "us-east-1")
+    S3_ACCESS_KEY: Optional[str] = os.getenv("S3_ACCESS_KEY", None)
+    S3_SECRET_KEY: Optional[str] = os.getenv("S3_SECRET_KEY", None)
+    S3_PREFIX: str = os.getenv("S3_PREFIX", "songs/")
+    
+    # File Retention and Cleanup Configuration
+    FILE_RETENTION_DAYS: int = int(os.getenv("FILE_RETENTION_DAYS", "30"))
+    CLEANUP_ENABLED: bool = os.getenv("CLEANUP_ENABLED", "true").lower() == "true"
+    CLEANUP_INTERVAL_HOURS: int = int(os.getenv("CLEANUP_INTERVAL_HOURS", "24"))
+    
     @classmethod
     def ensure_directories(cls):
         """Ensure required directories exist"""
